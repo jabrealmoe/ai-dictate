@@ -1,0 +1,36 @@
+modules:
+  jira:issueContext:
+    - key: dr-jira-dictate-context
+      resource: main
+      resolver:
+        function: resolver
+      title: Dr. Jira Dictate
+      label: Dr. Jira Dictate
+  jira:adminPage:
+    - key: dr-jira-dictate-admin
+      resource: main
+      resolver:
+        function: resolver
+      title: Dr. Jira Dictate Settings
+  function:
+    - key: resolver
+      handler: index.handler
+resources:
+  - key: main
+    path: static/frontend/build
+app:
+  name: Dr. Jira Dictate
+  id: ari:cloud:ecosystem::app/b5b4d1e3-20fe-4455-861f-33f8626e9d30
+  runtime:
+    name: nodejs20.x
+permissions:
+  scopes:
+    - read:jira-work
+    - write:jira-work
+    - storage:app
+  external:
+    fetch:
+      backend:
+        - "https://jabreal.app.n8n.cloud"
+      client:
+        - "*"
