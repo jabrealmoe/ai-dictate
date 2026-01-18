@@ -105,11 +105,21 @@ const PacManGame = () => {
     let animationFrameId;
 
     // ============================================
-    // CONFIGURATION
+    // CONFIGURATION & STATE MACHINE
     // ============================================
     const TILE_SIZE = 32;
     const COLS = 28;
-    const MOVE_FRAMES = 8; // Animation smoothness
+    const MOVE_FRAMES = 8;
+    
+    // States
+    const STATE_READY = 0;
+    const STATE_PLAY = 1;
+    const STATE_DYING = 2;
+    const STATE_GAMEOVER = 3;
+
+    let gameState = STATE_READY;
+    let stateEndTime = Date.now() + 2200; // Initial READY delay
+    
     let gameStateScore = 0; 
     let gameLives = 3; 
 
@@ -238,6 +248,9 @@ const PacManGame = () => {
         mapLayout = JSON.parse(JSON.stringify(MAP_TEMPLATE));
         pelletsRemaining = countPellets();
         resetEntities();
+        // Reset to READY state for new level
+        gameState = STATE_READY;
+        stateEndTime = Date.now() + 2000;
         setLevel(p => p + 1);
     };
 
@@ -378,10 +391,13 @@ const PacManGame = () => {
         else if(pacman.dy === 1) angle = Math.PI/2;
         ctx.rotate(angle);
         
-        pacman.mouth += 0.05 * pacman.mouthDir;
-        if(pacman.mouth > 0.35) pacman.mouthDir = -1;
-        if(pacman.mouth < 0.05) pacman.mouthDir = 1;
-        
+        // Mouth animation only loop if PLAYING to freeze mouth on death
+        if (gameState === STATE_PLAY) {
+             pacman.mouth += 0.05 * pacman.mouthDir;
+             if(pacman.mouth > 0.35) pacman.mouthDir = -1;
+             if(pacman.mouth < 0.05) pacman.mouthDir = 1;
+        }
+
         ctx.fillStyle = 'yellow';
         ctx.beginPath();
         ctx.arc(0, 0, TILE_SIZE*0.4, pacman.mouth*Math.PI, (2-pacman.mouth)*Math.PI);
@@ -411,40 +427,90 @@ const PacManGame = () => {
             ctx.arc(gPos.x + 6 + g.dx*2, gPos.y - 4 + g.dy*2, 2, 0, Math.PI*2);
             ctx.fill();
         });
+
+        // ============================
+        // STATE TEXT OVERLAYS
+        // ============================
+        if (gameState === STATE_READY) {
+            ctx.fillStyle = 'rgba(0,0,0,0.5)'; // dim
+            ctx.fillRect(0, canvas.height/2 - 20, canvas.width, 40);
+            ctx.fillStyle = '#ffcc00';
+            ctx.font = 'bold 32px monospace';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.shadowColor = 'black';
+            ctx.shadowBlur = 4;
+            ctx.fillText('READY!', canvas.width/2, canvas.height/2);
+            ctx.shadowBlur = 0;
+        } else if (gameState === STATE_GAMEOVER) {
+            ctx.fillStyle = 'rgba(0,0,0,0.7)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#ef4444';
+            ctx.font = 'bold 48px monospace';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.shadowColor = 'black';
+            ctx.shadowBlur = 10;
+            ctx.fillText('GAME OVER', canvas.width/2, canvas.height/2);
+            ctx.shadowBlur = 0;
+        }
     };
 
     const loop = () => {
         try {
-            updatePacman();
-            ghosts.forEach(updateGhost);
-            
-            // Collision
-            for(const g of ghosts) {
-                // Approximate collision
-                const dx = Math.abs(g.tileX - pacman.tileX);
-                const dy = Math.abs(g.tileY - pacman.tileY);
-                if (dx < 1 && dy < 1) {
-                    if (gameLives > 1) {
-                        gameLives--;
-                        setLives(gameLives);
-                        resetEntities();
-                        // Just return, handled in next frame
-                    } else {
-                        handleGameOver();
-                        return; 
+            const now = Date.now();
+
+            if (gameState === STATE_READY) {
+               if (now > stateEndTime) {
+                   gameState = STATE_PLAY;
+               }
+            } 
+            else if (gameState === STATE_PLAY) {
+                updatePacman();
+                ghosts.forEach(updateGhost);
+                
+                // Eating
+                const t = mapLayout[pacman.tileY]?.[pacman.tileX];
+                if (t === 0 || t === 2) {
+                    const val = (t===2) ? 50 : 10;
+                    mapLayout[pacman.tileY][pacman.tileX] = 3;
+                    gameStateScore += val;
+                    setScore(gameStateScore);
+                    pelletsRemaining--;
+                    if (pelletsRemaining <= 0) advanceLevel();
+                }
+
+                // Collision
+                for(const g of ghosts) {
+                    const dx = Math.abs(g.tileX - pacman.tileX);
+                    const dy = Math.abs(g.tileY - pacman.tileY);
+                    if (dx < 0.8 && dy < 0.8) {
+                        gameState = STATE_DYING;
+                        stateEndTime = now + 1500; // Pause for death animation
                     }
                 }
             }
-
-            // Eating
-            const t = mapLayout[pacman.tileY]?.[pacman.tileX];
-            if (t === 0 || t === 2) {
-                const val = (t===2) ? 50 : 10;
-                mapLayout[pacman.tileY][pacman.tileX] = 3;
-                gameStateScore += val;
-                setScore(gameStateScore);
-                pelletsRemaining--;
-                if (pelletsRemaining <= 0) advanceLevel();
+            else if (gameState === STATE_DYING) {
+                if (now > stateEndTime) {
+                    if (gameLives > 1) {
+                         gameLives--;
+                         setLives(gameLives);
+                         resetEntities();
+                         gameState = STATE_READY;
+                         stateEndTime = now + 2000;
+                    } else {
+                         gameLives = 0;
+                         setLives(0);
+                         gameState = STATE_GAMEOVER;
+                         stateEndTime = now + 3000;
+                    }
+                }
+            }
+            else if (gameState === STATE_GAMEOVER) {
+                if (now > stateEndTime) {
+                    handleGameOver();
+                    return;
+                }
             }
 
             render();
@@ -457,6 +523,10 @@ const PacManGame = () => {
 
     // Input
     const handleKey = (e) => {
+        // Allow input buffer only if playing or ready (classic buffering)
+        // For simplicity, only allow if Playing
+        if (gameState !== STATE_PLAY) return;
+
         if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key)) {
             e.preventDefault();
             if(e.key === 'ArrowUp') { pacman.nextDx=0; pacman.nextDy=-1; }
