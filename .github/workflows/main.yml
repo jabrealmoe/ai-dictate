@@ -251,12 +251,16 @@ jobs:
         uses: actions/github-script@v6
         with:
           script: |
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: '🚨 Deployment failed. System initiated automatic rollback to ${{ steps.prev_tag.outputs.previous_tag }}.'
-            })
+            if (context.issue.number) {
+              await github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: '🚨 Deployment failed. System initiated automatic rollback to ${{ steps.prev_tag.outputs.previous_tag }}.'
+              });
+            } else {
+              console.log('Skipping rollback comment: No issue number associated with this run (push event).');
+            }
 
   # ------------------------------------------------------------------
   # Release Creation & Notifications
