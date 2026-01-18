@@ -74,39 +74,39 @@ const PacManGame = () => {
     // ============================================
     const TILE_SIZE = 16;
     const COLS = 28;
-    const MOVE_FRAMES = 8;  // Number of frames to move one tile (discrete steps)
+    const MOVE_FRAMES = 8;
 
     // Map: 1=Wall, 0=Dot, 2=PowerPellet, 3=Empty, 4=GhostHouse
     const mapLayout = [
-      [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
-      [1,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,1],
-      [1,0,1,1,1,1,0,1,1,1,1,1,0,1,1,0,1,1,1,1,1,0,1,1,1,1,0,1],
-      [1,2,1,1,1,1,0,1,1,1,1,1,0,1,1,0,1,1,1,1,1,0,1,1,1,1,2,1],
-      [1,0,1,1,1,1,0,1,1,1,1,1,0,1,1,0,1,1,1,1,1,0,1,1,1,1,0,1],
-      [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-      [1,0,1,1,1,1,0,1,1,0,1,1,1,1,1,1,1,1,0,1,1,0,1,1,1,1,0,1],
-      [1,0,1,1,1,1,0,1,1,0,1,1,1,1,1,1,1,1,0,1,1,0,1,1,1,1,0,1],
-      [1,0,0,0,0,0,0,1,1,0,0,0,0,1,1,0,0,0,0,1,1,0,0,0,0,0,0,1],
-      [1,1,1,1,1,1,0,1,1,1,1,1,3,1,1,3,1,1,1,1,1,0,1,1,1,1,1,1],
-      [3,3,3,3,3,1,0,1,1,1,1,1,3,1,1,3,1,1,1,1,1,0,1,3,3,3,3,3],
-      [3,3,3,3,3,1,0,1,1,3,3,3,3,3,3,3,3,3,3,1,1,0,1,3,3,3,3,3],
-      [1,1,1,1,1,1,0,1,1,3,1,1,4,4,4,4,1,1,3,1,1,0,1,1,1,1,1,1],
-      [3,3,3,3,3,3,0,3,3,3,1,4,4,4,4,4,4,1,3,3,3,0,3,3,3,3,3,3],
-      [1,1,1,1,1,1,0,1,1,3,1,1,1,1,1,1,1,1,3,1,1,0,1,1,1,1,1,1],
-      [3,3,3,3,3,1,0,1,1,3,3,3,3,3,3,3,3,3,3,1,1,0,1,3,3,3,3,3],
-      [3,3,3,3,3,1,0,1,1,3,1,1,1,1,1,1,1,1,3,1,1,0,1,3,3,3,3,3],
-      [1,1,1,1,1,1,0,1,1,3,1,1,1,1,1,1,1,1,3,1,1,0,1,1,1,1,1,1],
-      [1,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,1],
-      [1,0,1,1,1,1,0,1,1,1,1,1,0,1,1,0,1,1,1,1,1,0,1,1,1,1,0,1],
-      [1,0,1,1,1,1,0,1,1,1,1,1,0,1,1,0,1,1,1,1,1,0,1,1,1,1,0,1],
-      [1,2,0,0,1,1,0,0,0,0,0,0,0,3,3,0,0,0,0,0,0,0,1,1,0,0,2,1],
-      [1,1,1,0,1,1,0,1,1,0,1,1,1,1,1,1,1,1,0,1,1,0,1,1,0,1,1,1],
-      [1,1,1,0,1,1,0,1,1,0,1,1,1,1,1,1,1,1,0,1,1,0,1,1,0,1,1,1],
-      [1,0,0,0,0,0,0,1,1,0,0,0,0,1,1,0,0,0,0,1,1,0,0,0,0,0,0,1],
-      [1,0,1,1,1,1,1,1,1,1,1,1,0,1,1,0,1,1,1,1,1,1,1,1,1,1,0,1],
-      [1,0,1,1,1,1,1,1,1,1,1,1,0,1,1,0,1,1,1,1,1,1,1,1,1,1,0,1],
-      [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-      [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
+      [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1], // 0
+      [1,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,1], // 1
+      [1,0,1,1,1,1,0,1,1,1,1,1,0,1,1,0,1,1,1,1,1,0,1,1,1,1,0,1], // 2
+      [1,2,1,1,1,1,0,1,1,1,1,1,0,1,1,0,1,1,1,1,1,0,1,1,1,1,2,1], // 3
+      [1,0,1,1,1,1,0,1,1,1,1,1,0,1,1,0,1,1,1,1,1,0,1,1,1,1,0,1], // 4
+      [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1], // 5
+      [1,0,1,1,1,1,0,1,1,0,1,1,1,1,1,1,1,1,0,1,1,0,1,1,1,1,0,1], // 6
+      [1,0,1,1,1,1,0,1,1,0,1,1,1,1,1,1,1,1,0,1,1,0,1,1,1,1,0,1], // 7
+      [1,0,0,0,0,0,0,1,1,0,0,0,0,1,1,0,0,0,0,1,1,0,0,0,0,0,0,1], // 8
+      [1,1,1,1,1,1,0,1,1,1,1,1,3,1,1,3,1,1,1,1,1,0,1,1,1,1,1,1], // 9
+      [3,3,3,3,3,1,0,1,1,1,1,1,3,1,1,3,1,1,1,1,1,0,1,3,3,3,3,3], // 10
+      [3,3,3,3,3,1,0,1,1,3,3,3,3,3,3,3,3,3,3,1,1,0,1,3,3,3,3,3], // 11
+      [1,1,1,1,1,1,0,1,1,3,1,1,4,4,4,4,1,1,3,1,1,0,1,1,1,1,1,1], // 12
+      [3,3,3,3,3,3,0,3,3,3,1,4,4,4,4,4,4,1,3,3,3,0,3,3,3,3,3,3], // 13 (tunnel row)
+      [1,1,1,1,1,1,0,1,1,3,1,1,1,1,1,1,1,1,3,1,1,0,1,1,1,1,1,1], // 14
+      [3,3,3,3,3,1,0,1,1,3,3,3,3,3,3,3,3,3,3,1,1,0,1,3,3,3,3,3], // 15
+      [3,3,3,3,3,1,0,1,1,3,1,1,1,1,1,1,1,1,3,1,1,0,1,3,3,3,3,3], // 16
+      [1,1,1,1,1,1,0,1,1,3,1,1,1,1,1,1,1,1,3,1,1,0,1,1,1,1,1,1], // 17
+      [1,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,1], // 18
+      [1,0,1,1,1,1,0,1,1,1,1,1,0,1,1,0,1,1,1,1,1,0,1,1,1,1,0,1], // 19
+      [1,0,1,1,1,1,0,1,1,1,1,1,0,1,1,0,1,1,1,1,1,0,1,1,1,1,0,1], // 20
+      [1,2,0,0,1,1,0,0,0,0,0,0,0,3,3,0,0,0,0,0,0,0,1,1,0,0,2,1], // 21 (pac-man spawn row)
+      [1,1,1,0,1,1,0,1,1,0,1,1,1,1,1,1,1,1,0,1,1,0,1,1,0,1,1,1], // 22
+      [1,1,1,0,1,1,0,1,1,0,1,1,1,1,1,1,1,1,0,1,1,0,1,1,0,1,1,1], // 23
+      [1,0,0,0,0,0,0,1,1,0,0,0,0,1,1,0,0,0,0,1,1,0,0,0,0,0,0,1], // 24
+      [1,0,1,1,1,1,1,1,1,1,1,1,0,1,1,0,1,1,1,1,1,1,1,1,1,1,0,1], // 25
+      [1,0,1,1,1,1,1,1,1,1,1,1,0,1,1,0,1,1,1,1,1,1,1,1,1,1,0,1], // 26
+      [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1], // 27
+      [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]  // 28
     ];
 
     const ROWS = mapLayout.length;
@@ -114,12 +114,7 @@ const PacManGame = () => {
     canvas.height = ROWS * TILE_SIZE;
 
     // ============================================
-    // DISCRETE MOVEMENT STATE
-    // Each character has:
-    //   - tileX, tileY: Current discrete tile position
-    //   - targetX, targetY: Target tile (same as current when stationary)
-    //   - progress: 0 to MOVE_FRAMES (lerp factor for rendering)
-    //   - dx, dy: Movement direction (-1, 0, or 1)
+    // TILE VALIDATION FUNCTIONS
     // ============================================
 
     const isWall = (tx, ty) => {
@@ -130,10 +125,55 @@ const PacManGame = () => {
 
     const canEnter = (tx, ty) => !isWall(tx, ty);
 
-    // Pac-Man state (discrete tiles + progress for smooth rendering)
+    // Find nearest valid tile using BFS (for spawn recovery)
+    const findNearestValidTile = (startX, startY) => {
+      if (canEnter(startX, startY)) return { x: startX, y: startY };
+      
+      const visited = new Set();
+      const queue = [[startX, startY, 0]];
+      
+      while (queue.length > 0) {
+        const [x, y, dist] = queue.shift();
+        const key = `${x},${y}`;
+        
+        if (visited.has(key)) continue;
+        visited.add(key);
+        
+        if (canEnter(x, y)) return { x, y };
+        
+        // Check neighbors
+        [[0,-1], [0,1], [-1,0], [1,0]].forEach(([dx, dy]) => {
+          const nx = x + dx;
+          const ny = y + dy;
+          if (ny >= 0 && ny < ROWS && nx >= 0 && nx < COLS) {
+            queue.push([nx, ny, dist + 1]);
+          }
+        });
+      }
+      
+      // Fallback: return center of map (should never happen)
+      return { x: 14, y: 14 };
+    };
+
+    // Validate and correct spawn position
+    const getValidSpawn = (preferredX, preferredY) => {
+      if (canEnter(preferredX, preferredY)) {
+        return { x: preferredX, y: preferredY };
+      }
+      console.warn(`Spawn (${preferredX}, ${preferredY}) is inside wall! Finding valid position...`);
+      return findNearestValidTile(preferredX, preferredY);
+    };
+
+    // ============================================
+    // GAME STATE WITH VALIDATED SPAWN
+    // Pac-Man spawns at row 21 (the open corridor below the maze)
+    // ============================================
+
+    const pacmanSpawn = getValidSpawn(14, 21); // Row 21 has 3,3 at positions 13-14
+    
     const pacman = {
-      tileX: 14,
-      tileY: 23,
+      tileX: pacmanSpawn.x,
+      tileY: pacmanSpawn.y,
       dx: 0,
       dy: 0,
       nextDx: 0,
@@ -144,12 +184,19 @@ const PacManGame = () => {
       mouthDir: 1
     };
 
-    // Ghosts
+    // Ghosts spawn in/near ghost house (validated)
+    const ghostSpawns = [
+      getValidSpawn(14, 11),
+      getValidSpawn(13, 13),
+      getValidSpawn(14, 13),
+      getValidSpawn(15, 13)
+    ];
+
     const ghosts = [
-      { tileX: 14, tileY: 11, dx: 1, dy: 0, progress: 0, moveFrames: Math.floor(MOVE_FRAMES * 1.2), color: '#ef4444' },
-      { tileX: 13, tileY: 13, dx: 0, dy: -1, progress: 0, moveFrames: Math.floor(MOVE_FRAMES * 1.3), color: '#f472b6' },
-      { tileX: 14, tileY: 13, dx: 0, dy: -1, progress: 0, moveFrames: Math.floor(MOVE_FRAMES * 1.3), color: '#22d3d3' },
-      { tileX: 15, tileY: 13, dx: 0, dy: 1, progress: 0, moveFrames: Math.floor(MOVE_FRAMES * 1.3), color: '#fb923c' }
+      { tileX: ghostSpawns[0].x, tileY: ghostSpawns[0].y, dx: 1, dy: 0, progress: 0, moveFrames: Math.floor(MOVE_FRAMES * 1.2), color: '#ef4444' },
+      { tileX: ghostSpawns[1].x, tileY: ghostSpawns[1].y, dx: 0, dy: -1, progress: 0, moveFrames: Math.floor(MOVE_FRAMES * 1.3), color: '#f472b6' },
+      { tileX: ghostSpawns[2].x, tileY: ghostSpawns[2].y, dx: 0, dy: -1, progress: 0, moveFrames: Math.floor(MOVE_FRAMES * 1.3), color: '#22d3d3' },
+      { tileX: ghostSpawns[3].x, tileY: ghostSpawns[3].y, dx: 0, dy: 1, progress: 0, moveFrames: Math.floor(MOVE_FRAMES * 1.3), color: '#fb923c' }
     ];
 
     // Input handling
@@ -160,6 +207,7 @@ const PacManGame = () => {
         case 'ArrowDown':  pacman.nextDx = 0;  pacman.nextDy = 1;  break;
         case 'ArrowLeft':  pacman.nextDx = -1; pacman.nextDy = 0;  break;
         case 'ArrowRight': pacman.nextDx = 1;  pacman.nextDy = 0;  break;
+        default: break;
       }
     };
 
@@ -167,19 +215,28 @@ const PacManGame = () => {
     if (container) container.addEventListener('keydown', handleKeyDown);
 
     // ============================================
-    // DISCRETE MOVEMENT LOGIC
-    // Only runs when progress === 0 (at tile center)
+    // MOVEMENT LOGIC WITH WALL RECOVERY
     // ============================================
 
     const updatePacman = () => {
+      // SAFETY CHECK: If somehow inside a wall, eject immediately
+      if (isWall(pacman.tileX, pacman.tileY)) {
+        console.error(`Pac-Man stuck in wall at (${pacman.tileX}, ${pacman.tileY})! Ejecting...`);
+        const safePos = findNearestValidTile(pacman.tileX, pacman.tileY);
+        pacman.tileX = safePos.x;
+        pacman.tileY = safePos.y;
+        pacman.dx = 0;
+        pacman.dy = 0;
+        pacman.progress = 0;
+        return;
+      }
+
       if (pacman.progress > 0) {
-        // Still moving between tiles - continue
         pacman.progress--;
         return;
       }
 
       // AT TILE CENTER - make discrete decision
-      // Try buffered direction first
       if (pacman.nextDx !== 0 || pacman.nextDy !== 0) {
         const nextTileX = pacman.tileX + pacman.nextDx;
         const nextTileY = pacman.tileY + pacman.nextDy;
@@ -191,12 +248,10 @@ const PacManGame = () => {
         }
       }
 
-      // Try current direction
       if (pacman.dx !== 0 || pacman.dy !== 0) {
         const nextTileX = pacman.tileX + pacman.dx;
         const nextTileY = pacman.tileY + pacman.dy;
         if (canEnter(nextTileX, nextTileY)) {
-          // Commit to move
           pacman.tileX = nextTileX;
           pacman.tileY = nextTileY;
           pacman.progress = pacman.moveFrames;
@@ -205,7 +260,6 @@ const PacManGame = () => {
           if (pacman.tileX < 0) pacman.tileX = COLS - 1;
           if (pacman.tileX >= COLS) pacman.tileX = 0;
         } else {
-          // Blocked - stop
           pacman.dx = 0;
           pacman.dy = 0;
         }
@@ -213,12 +267,22 @@ const PacManGame = () => {
     };
 
     const updateGhost = (ghost) => {
+      // SAFETY CHECK: Eject from walls
+      if (isWall(ghost.tileX, ghost.tileY)) {
+        const safePos = findNearestValidTile(ghost.tileX, ghost.tileY);
+        ghost.tileX = safePos.x;
+        ghost.tileY = safePos.y;
+        ghost.dx = 0;
+        ghost.dy = 0;
+        ghost.progress = 0;
+        return;
+      }
+
       if (ghost.progress > 0) {
         ghost.progress--;
         return;
       }
 
-      // AT TILE CENTER - choose direction
       const reverse = { dx: -ghost.dx, dy: -ghost.dy };
       const options = [];
 
@@ -230,22 +294,19 @@ const PacManGame = () => {
       });
 
       if (options.length > 0) {
-        // Prefer continuing straight
         const straight = options.find(o => o.dx === ghost.dx && o.dy === ghost.dy);
         if (straight && Math.random() > 0.3) {
-          // Keep going
+          // Continue straight
         } else {
           const choice = options[Math.floor(Math.random() * options.length)];
           ghost.dx = choice.dx;
           ghost.dy = choice.dy;
         }
       } else {
-        // Dead end - reverse
         ghost.dx = reverse.dx;
         ghost.dy = reverse.dy;
       }
 
-      // Commit move
       const nextX = ghost.tileX + ghost.dx;
       const nextY = ghost.tileY + ghost.dy;
       if (canEnter(nextX, nextY)) {
@@ -253,19 +314,17 @@ const PacManGame = () => {
         ghost.tileY = nextY;
         ghost.progress = ghost.moveFrames;
 
-        // Tunnel wrap
         if (ghost.tileX < 0) ghost.tileX = COLS - 1;
         if (ghost.tileX >= COLS) ghost.tileX = 0;
       }
     };
 
     // ============================================
-    // RENDERING (Continuous - Interpolated positions)
+    // RENDERING
     // ============================================
 
     const getRenderPos = (char) => {
-      // Calculate interpolated pixel position for smooth rendering
-      const t = 1 - (char.progress / char.moveFrames); // 0 = at prev tile, 1 = at current tile
+      const t = 1 - (char.progress / char.moveFrames);
       const prevTileX = char.tileX - char.dx;
       const prevTileY = char.tileY - char.dy;
 
@@ -274,13 +333,10 @@ const PacManGame = () => {
       const toX = char.tileX * TILE_SIZE + TILE_SIZE / 2;
       const toY = char.tileY * TILE_SIZE + TILE_SIZE / 2;
 
-      // Handle tunnel wrap rendering
       let x = fromX + (toX - fromX) * t;
       let y = fromY + (toY - fromY) * t;
 
-      // If wrapping, render correctly
       if (Math.abs(toX - fromX) > TILE_SIZE * 2) {
-        // Tunnel wrap happened
         x = toX;
       }
 
@@ -292,21 +348,19 @@ const PacManGame = () => {
     // ============================================
 
     const update = () => {
-      // Discrete movement updates
       updatePacman();
       ghosts.forEach(updateGhost);
 
-      // Eat dots (discrete check)
+      // Eat dots
       const tile = mapLayout[pacman.tileY]?.[pacman.tileX];
       if (tile === 0 || tile === 2) {
         mapLayout[pacman.tileY][pacman.tileX] = 3;
       }
 
-      // ========== RENDERING ==========
+      // Draw
       ctx.fillStyle = 'black';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      // Draw maze
       for (let r = 0; r < ROWS; r++) {
         for (let c = 0; c < COLS; c++) {
           const t = mapLayout[r][c];
@@ -333,7 +387,7 @@ const PacManGame = () => {
         }
       }
 
-      // Draw Pac-Man (interpolated position)
+      // Draw Pac-Man
       const pacPos = getRenderPos(pacman);
       ctx.save();
       ctx.translate(pacPos.x, pacPos.y);
@@ -356,7 +410,7 @@ const PacManGame = () => {
       ctx.fill();
       ctx.restore();
 
-      // Draw Ghosts (interpolated positions)
+      // Draw Ghosts
       ghosts.forEach(g => {
         const pos = getRenderPos(g);
         const size = TILE_SIZE * 0.4;
@@ -369,7 +423,6 @@ const PacManGame = () => {
         ctx.closePath();
         ctx.fill();
 
-        // Eyes
         ctx.fillStyle = 'white';
         ctx.beginPath();
         ctx.arc(pos.x - 3, pos.y - 1, 2.5, 0, Math.PI * 2);
