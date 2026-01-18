@@ -53,7 +53,7 @@ const AdminPage = () => {
   }
 
   return (
-    <div className="max-w-4xl mx-auto p-6 font-sans text-slate-800 bg-slate-50 min-h-screen">
+    <div className="max-w-4xl mx-auto p-6 font-sans text-slate-800 bg-white min-h-screen">
       
       {/* Game Section */}
       <PacManGame />
