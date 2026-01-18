@@ -399,10 +399,10 @@ const PacManGame = () => {
             </div>
             
             {/* Ghosts with faces */}
-            <GhostPreview color="#ef4444" name="BLINKY" />
-            <GhostPreview color="#f472b6" name="PINKY" />
-            <GhostPreview color="#22d3d3" name="INKY" />
-            <GhostPreview color="#fb923c" name="CLYDE" />
+            <GhostPreview color="#ef4444" name="NADIA" />
+            <GhostPreview color="#f472b6" name="MARWA" />
+            <GhostPreview color="#22d3d3" name="AMARA" />
+            <GhostPreview color="#fb923c" name="REYHAN" />
           </div>
 
           {/* Start Button */}
