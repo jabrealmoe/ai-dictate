@@ -9,7 +9,7 @@
   },
   "dependencies": {
     "@forge/bridge": "^3.0.0",
-    "@react-three/drei": "^10.7.7",
+    "@react-three/drei": "^9.122.0",
     "@react-three/fiber": "^9.5.0",
     "clsx": "^2.0.0",
     "lucide-react": "^0.300.0",
