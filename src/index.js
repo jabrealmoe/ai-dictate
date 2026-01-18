@@ -13,7 +13,8 @@ resolver.define('getAiSettings', async () => {
     topK: -1,
     topP: 0.9,
     temperature: 0.7,
-    maxTokens: 2048
+    maxTokens: 2048,
+    webhookUrl: ''
   };
 });
 
@@ -87,28 +88,32 @@ resolver.define('createJiraIssue', async (req) => {
 
 resolver.define('sendAudioToN8n', async (req) => {
   const { audio } = req.payload;
-  // Use process.env.N8N_WEBHOOK_URL for the endpoint
-  const n8nUrl = process.env.N8N_WEBHOOK_URL;
+
+  // Retrieve Settings (AI + Networking)
+  const aiSettings = await storage.get('aiSettings') || {
+    topK: -1,
+    topP: 0.9,
+    temperature: 0.7,
+    maxTokens: 2048,
+    webhookUrl: ''
+  };
+
+  // Determine N8N URL: Storage Override > Env Var > Error
+  let n8nUrl = aiSettings.webhookUrl;
+  if (!n8nUrl || n8nUrl.trim() === '') {
+      n8nUrl = process.env.N8N_WEBHOOK_URL;
+  }
   
   if (!n8nUrl) {
-    throw new Error("N8N_WEBHOOK_URL is not set in environment variables.");
+    throw new Error("N8N_WEBHOOK_URL is not set in environment settings or variables.");
   }
 
-  
   // Use process.env.N8N_AUTH_TOKEN for the secure token
   const token = process.env.N8N_AUTH_TOKEN;
 
   if (!token) {
     throw new Error("N8N_AUTH_TOKEN is not set in environment variables.");
   }
-
-  // Retrieve AI settings
-  const aiSettings = await storage.get('aiSettings') || {
-    topK: -1,
-    topP: 0.9,
-    temperature: 0.7,
-    maxTokens: 2048
-  };
 
   const response = await fetch(n8nUrl, {
     method: 'POST',
