@@ -10,10 +10,10 @@ resolver.define('example', (req) => {
 
 resolver.define('getAiSettings', async () => {
   return await storage.get('aiSettings') || {
-    topK: 50,
+    topK: -1,
     topP: 0.9,
     temperature: 0.7,
-    maxTokens: 150
+    maxTokens: 2048
   };
 });
 
@@ -104,10 +104,10 @@ resolver.define('sendAudioToN8n', async (req) => {
 
   // Retrieve AI settings
   const aiSettings = await storage.get('aiSettings') || {
-    topK: 50,
+    topK: -1,
     topP: 0.9,
     temperature: 0.7,
-    maxTokens: 150
+    maxTokens: 2048
   };
 
   const response = await fetch(n8nUrl, {
