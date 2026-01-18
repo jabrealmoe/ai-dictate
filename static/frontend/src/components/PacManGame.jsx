@@ -382,7 +382,7 @@ const PacManGame = () => {
           <div className="text-center mb-8">
             <h1 className="text-5xl font-bold text-yellow-400 mb-2"
                 style={{ fontFamily: 'monospace', textShadow: '3px 3px 0 #0369a1' }}>
-              MR. PAC-MAN
+              DR. JIRA PAC-MAN
             </h1>
             <p className="text-blue-400 text-lg">© DR. JIRA DICTATE</p>
           </div>
@@ -395,7 +395,7 @@ const PacManGame = () => {
                 {/* Mouth cutout */}
                 <div className="absolute right-0 top-1/2 -translate-y-1/2 w-0 h-0 border-t-[14px] border-b-[14px] border-l-[20px] border-t-transparent border-b-transparent border-l-black"></div>
               </div>
-              <span className="text-yellow-400 text-sm font-bold">MR. PAC-MAN</span>
+              <span className="text-yellow-400 text-sm font-bold">DR. JIRA</span>
             </div>
             
             {/* Ghosts with faces */}
