@@ -78,6 +78,31 @@ refactor(game): separate discrete logic from rendering
 
 1. Use **lowercase** for the type and description
 2. Do NOT end the description with a period
-3. Keep the first line under 72 characters
+3. Keep the subject line under 72 characters
 4. Use the imperative mood ("add feature" not "added feature")
 5. Reference issue numbers in the footer when applicable: `Closes #123`
+6. **PREFER long, descriptive messages** - Use the commit body to explain:
+   - **What** was changed
+   - **Why** the change was made
+   - **How** it affects the system
+   - Any **trade-offs** or decisions made
+
+### Extended Example
+
+```
+fix(game): separate discrete movement logic from continuous rendering
+
+The previous implementation mixed pixel-based continuous movement with
+tile-based collision detection, causing characters to clip through walls.
+
+This refactor introduces a clean separation:
+- Movement state is now purely discrete (tileX, tileY, progress counter)
+- Rendering interpolates between tiles for smooth 60fps animation
+- Direction changes only occur at tile centers
+- Collision checks happen before committing to a move
+
+This matches the original Pac-Man arcade behavior and eliminates all
+wall-clipping issues.
+
+Closes #42
+```
