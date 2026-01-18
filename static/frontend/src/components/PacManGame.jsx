@@ -7,8 +7,52 @@ const PacManGame = () => {
   const [score, setScore] = useState(0);
   const [level, setLevel] = useState(1);
   const [highScore, setHighScore] = useState(0);
+  const [gameStarted, setGameStarted] = useState(false);
+  const [musicEnabled, setMusicEnabled] = useState(true);
+  const audioContextRef = useRef(null);
 
-  // ... (audio context code remains above)
+  const playIntroMusic = () => {
+    if (!musicEnabled) return;
+    try {
+      const AudioContext = window.AudioContext || window.webkitAudioContext;
+      if (!AudioContext) return;
+      const ctx = new AudioContext();
+      audioContextRef.current = ctx;
+      const now = ctx.currentTime;
+      const melody = [
+        { freq: 523.25, start: 0, duration: 0.15 },
+        { freq: 659.25, start: 0.15, duration: 0.15 },
+        { freq: 783.99, start: 0.3, duration: 0.15 },
+        { freq: 1046.50, start: 0.45, duration: 0.3 },
+        { freq: 783.99, start: 0.8, duration: 0.15 },
+        { freq: 659.25, start: 0.95, duration: 0.15 },
+        { freq: 523.25, start: 1.1, duration: 0.15 },
+        { freq: 392.00, start: 1.3, duration: 0.15 },
+        { freq: 440.00, start: 1.45, duration: 0.15 },
+        { freq: 493.88, start: 1.6, duration: 0.15 },
+        { freq: 523.25, start: 1.75, duration: 0.4 },
+        { freq: 659.25, start: 2.2, duration: 0.15 },
+        { freq: 783.99, start: 2.35, duration: 0.15 },
+        { freq: 1046.50, start: 2.5, duration: 0.5 },
+      ];
+      melody.forEach(note => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.frequency.value = note.freq;
+        osc.type = 'square';
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        const startTime = now + note.start;
+        osc.start(startTime);
+        gain.gain.setValueAtTime(0, startTime);
+        gain.gain.linearRampToValueAtTime(0.08, startTime + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.001, startTime + note.duration);
+        osc.stop(startTime + note.duration);
+      });
+    } catch (e) {
+      console.error("Audio playback failed", e);
+    }
+  };
 
   const handleStartGame = () => {
     playIntroMusic();
