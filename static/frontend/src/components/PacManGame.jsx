@@ -13,7 +13,7 @@ const PacManGame = () => {
     const TILE_SIZE = 30;
     const ROWS = 31;
     const COLS = 28;
-    const SPEED = 3; // Pixels per frame. Must be a divisor of TILE_SIZE (30). 3 is good.
+    const SPEED = 1.5; // Pixels per frame. Slower for smoother, more classic gameplay.
 
     // 1 = Wall, 0 = Dot, 2 = Power Pellet, 3 = Empty, 4 = Ghost House, 5 = Tunnel
     // Classic(-ish) Layout
@@ -131,27 +131,30 @@ const PacManGame = () => {
                 }
             }
         } else {
-             // Simple Ghost Logic: Random turns at intersections
+             // Ghost Logic: Never reverse direction unless dead-ended (classic Pac-Man rule)
              if (isCentered) {
+                 const reverseDir = { x: -char.dir.x, y: -char.dir.y };
                  const possibleDirs = [];
                  [[0,-1], [0,1], [-1,0], [1,0]].forEach(([dx, dy]) => {
-                     // Don't reverse immediately usually, but random here
+                     // Don't include reverse direction
+                     if (dx === reverseDir.x && dy === reverseDir.y) return;
                      if (!isSolid(gridX + dx, gridY + dy)) {
                          possibleDirs.push({ x: dx, y: dy });
                      }
                  });
                  if (possibleDirs.length > 0) {
-                    // Bias towards keeping direction
+                    // Prioritize continuing straight if possible
                     const keep = possibleDirs.find(d => d.x === char.dir.x && d.y === char.dir.y);
-                    if (keep && Math.random() > 0.2) {
-                        // keep going
+                    if (keep && Math.random() > 0.3) {
+                        // keep going straight
                     } else {
+                        // Pick a random available direction (but not reverse)
                         char.dir = possibleDirs[Math.floor(Math.random() * possibleDirs.length)];
                     }
                     char.x = centerX;
                     char.y = centerY;
                  } else {
-                     // Dead end (ghost house maybe), just reverse
+                     // Dead end, only then reverse
                      char.dir.x *= -1;
                      char.dir.y *= -1;
                  }
