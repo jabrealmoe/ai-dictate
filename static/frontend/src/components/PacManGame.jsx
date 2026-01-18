@@ -70,11 +70,11 @@ const PacManGame = () => {
     let animationFrameId;
 
     // ============================================
-    // CONFIGURATION - Classic Pac-Man Style
+    // CONFIGURATION
     // ============================================
-    const TILE_SIZE = 16;  // Pixels per tile (must be divisible by SPEED)
-    const SPEED = 2;       // Pixels per frame (TILE_SIZE % SPEED must === 0)
+    const TILE_SIZE = 16;
     const COLS = 28;
+    const MOVE_FRAMES = 8;  // Number of frames to move one tile (discrete steps)
 
     // Map: 1=Wall, 0=Dot, 2=PowerPellet, 3=Empty, 4=GhostHouse
     const mapLayout = [
@@ -114,78 +114,45 @@ const PacManGame = () => {
     canvas.height = ROWS * TILE_SIZE;
 
     // ============================================
-    // HELPER FUNCTIONS
+    // DISCRETE MOVEMENT STATE
+    // Each character has:
+    //   - tileX, tileY: Current discrete tile position
+    //   - targetX, targetY: Target tile (same as current when stationary)
+    //   - progress: 0 to MOVE_FRAMES (lerp factor for rendering)
+    //   - dx, dy: Movement direction (-1, 0, or 1)
     // ============================================
-    
-    // Check if a tile is a wall
-    const isWall = (tileX, tileY) => {
-      // Handle tunnel (out of bounds horizontally is NOT a wall)
-      if (tileY < 0 || tileY >= ROWS) return true;
-      if (tileX < 0 || tileX >= COLS) return false;
-      return mapLayout[tileY][tileX] === 1;
+
+    const isWall = (tx, ty) => {
+      if (ty < 0 || ty >= ROWS) return true;
+      if (tx < 0 || tx >= COLS) return false; // Tunnel
+      return mapLayout[ty][tx] === 1;
     };
 
-    // Convert pixel position to tile position
-    // Uses Math.round for center-based calculation
-    const pixelToTile = (px, py) => ({
-      x: Math.floor(px / TILE_SIZE),
-      y: Math.floor(py / TILE_SIZE)
-    });
+    const canEnter = (tx, ty) => !isWall(tx, ty);
 
-    // Get pixel center of a tile
-    const tileCenterPx = (tx, ty) => ({
-      x: tx * TILE_SIZE + TILE_SIZE / 2,
-      y: ty * TILE_SIZE + TILE_SIZE / 2
-    });
-
-    // Check if character is exactly at tile center
-    const isAtTileCenter = (char) => {
-      const tile = pixelToTile(char.px, char.py);
-      const center = tileCenterPx(tile.x, tile.y);
-      return char.px === center.x && char.py === center.y;
-    };
-
-    // Snap character to nearest tile center
-    const snapToTileCenter = (char) => {
-      const tile = pixelToTile(char.px, char.py);
-      const center = tileCenterPx(tile.x, tile.y);
-      char.px = center.x;
-      char.py = center.y;
-    };
-
-    // Check if can move in direction from current tile
-    const canMoveInDir = (tileX, tileY, dx, dy) => {
-      return !isWall(tileX + dx, tileY + dy);
-    };
-
-    // ============================================
-    // GAME STATE - Grid-locked positions
-    // ============================================
-    
-    // Characters store their position as PIXEL coordinates
-    // but are always aligned to tile centers
+    // Pac-Man state (discrete tiles + progress for smooth rendering)
     const pacman = {
-      px: 14 * TILE_SIZE + TILE_SIZE / 2,  // Pixel X (centered on tile 14)
-      py: 23 * TILE_SIZE + TILE_SIZE / 2,  // Pixel Y (centered on tile 23)
-      dx: 0,   // Current direction X (-1, 0, 1)
-      dy: 0,   // Current direction Y (-1, 0, 1)
-      nextDx: 0,  // Buffered next direction
+      tileX: 14,
+      tileY: 23,
+      dx: 0,
+      dy: 0,
+      nextDx: 0,
       nextDy: 0,
-      speed: SPEED,
+      progress: 0,
+      moveFrames: MOVE_FRAMES,
       mouth: 0.2,
       mouthDir: 1
     };
 
+    // Ghosts
     const ghosts = [
-      { px: 14 * TILE_SIZE + TILE_SIZE / 2, py: 11 * TILE_SIZE + TILE_SIZE / 2, dx: 1, dy: 0, speed: SPEED * 0.85, color: '#ef4444' },
-      { px: 13 * TILE_SIZE + TILE_SIZE / 2, py: 13 * TILE_SIZE + TILE_SIZE / 2, dx: 0, dy: -1, speed: SPEED * 0.8, color: '#f472b6' },
-      { px: 14 * TILE_SIZE + TILE_SIZE / 2, py: 13 * TILE_SIZE + TILE_SIZE / 2, dx: 0, dy: -1, speed: SPEED * 0.8, color: '#22d3d3' },
-      { px: 15 * TILE_SIZE + TILE_SIZE / 2, py: 13 * TILE_SIZE + TILE_SIZE / 2, dx: 0, dy: 1, speed: SPEED * 0.8, color: '#fb923c' }
+      { tileX: 14, tileY: 11, dx: 1, dy: 0, progress: 0, moveFrames: Math.floor(MOVE_FRAMES * 1.2), color: '#ef4444' },
+      { tileX: 13, tileY: 13, dx: 0, dy: -1, progress: 0, moveFrames: Math.floor(MOVE_FRAMES * 1.3), color: '#f472b6' },
+      { tileX: 14, tileY: 13, dx: 0, dy: -1, progress: 0, moveFrames: Math.floor(MOVE_FRAMES * 1.3), color: '#22d3d3' },
+      { tileX: 15, tileY: 13, dx: 0, dy: 1, progress: 0, moveFrames: Math.floor(MOVE_FRAMES * 1.3), color: '#fb923c' }
     ];
 
-    // ============================================
-    // INPUT HANDLING
-    // ============================================
+    // Input handling
     const handleKeyDown = (e) => {
       e.preventDefault();
       switch(e.key) {
@@ -200,118 +167,139 @@ const PacManGame = () => {
     if (container) container.addEventListener('keydown', handleKeyDown);
 
     // ============================================
-    // MOVEMENT LOGIC - The Core Fix
+    // DISCRETE MOVEMENT LOGIC
+    // Only runs when progress === 0 (at tile center)
     // ============================================
-    
-    const moveCharacter = (char, isPacman = false) => {
-      const currentTile = pixelToTile(char.px, char.py);
-      const center = tileCenterPx(currentTile.x, currentTile.y);
-      
-      // Calculate distance to tile center
-      const distX = char.px - center.x;
-      const distY = char.py - center.y;
-      
-      // Are we at (or will overshoot) the tile center this frame?
-      const movingTowardsCenterX = (char.dx > 0 && distX < 0) || (char.dx < 0 && distX > 0);
-      const movingTowardsCenterY = (char.dy > 0 && distY < 0) || (char.dy < 0 && distY > 0);
-      const willCrossCenter = 
-        (movingTowardsCenterX && Math.abs(distX) <= char.speed) ||
-        (movingTowardsCenterY && Math.abs(distY) <= char.speed) ||
-        (distX === 0 && distY === 0);
 
-      if (willCrossCenter || (distX === 0 && distY === 0)) {
-        // SNAP to center first - this is critical
-        char.px = center.x;
-        char.py = center.y;
+    const updatePacman = () => {
+      if (pacman.progress > 0) {
+        // Still moving between tiles - continue
+        pacman.progress--;
+        return;
+      }
 
-        if (isPacman) {
-          // Try buffered direction first
-          if (char.nextDx !== 0 || char.nextDy !== 0) {
-            if (canMoveInDir(currentTile.x, currentTile.y, char.nextDx, char.nextDy)) {
-              char.dx = char.nextDx;
-              char.dy = char.nextDy;
-              char.nextDx = 0;
-              char.nextDy = 0;
-            }
-          }
-          
-          // Check if current direction is blocked
-          if (!canMoveInDir(currentTile.x, currentTile.y, char.dx, char.dy)) {
-            char.dx = 0;
-            char.dy = 0;
-          }
-        } else {
-          // Ghost AI: Choose direction at intersections
-          const reverse = { x: -char.dx, y: -char.dy };
-          const options = [];
-          
-          [[0, -1], [0, 1], [-1, 0], [1, 0]].forEach(([dx, dy]) => {
-            // Don't reverse unless no other option
-            if (dx === reverse.x && dy === reverse.y) return;
-            if (canMoveInDir(currentTile.x, currentTile.y, dx, dy)) {
-              options.push({ dx, dy });
-            }
-          });
-
-          if (options.length > 0) {
-            // Prefer current direction, otherwise pick randomly
-            const keepGoing = options.find(o => o.dx === char.dx && o.dy === char.dy);
-            if (keepGoing && Math.random() > 0.25) {
-              // Continue straight
-            } else {
-              const choice = options[Math.floor(Math.random() * options.length)];
-              char.dx = choice.dx;
-              char.dy = choice.dy;
-            }
-          } else {
-            // Dead end - must reverse
-            char.dx = reverse.x;
-            char.dy = reverse.y;
-          }
+      // AT TILE CENTER - make discrete decision
+      // Try buffered direction first
+      if (pacman.nextDx !== 0 || pacman.nextDy !== 0) {
+        const nextTileX = pacman.tileX + pacman.nextDx;
+        const nextTileY = pacman.tileY + pacman.nextDy;
+        if (canEnter(nextTileX, nextTileY)) {
+          pacman.dx = pacman.nextDx;
+          pacman.dy = pacman.nextDy;
+          pacman.nextDx = 0;
+          pacman.nextDy = 0;
         }
       }
 
-      // MOVE - only if direction is set and path is clear
-      if (char.dx !== 0 || char.dy !== 0) {
-        const nextTile = pixelToTile(
-          char.px + char.dx * char.speed,
-          char.py + char.dy * char.speed
-        );
-        
-        // Double-check we're not entering a wall
-        if (!isWall(nextTile.x, nextTile.y)) {
-          char.px += char.dx * char.speed;
-          char.py += char.dy * char.speed;
+      // Try current direction
+      if (pacman.dx !== 0 || pacman.dy !== 0) {
+        const nextTileX = pacman.tileX + pacman.dx;
+        const nextTileY = pacman.tileY + pacman.dy;
+        if (canEnter(nextTileX, nextTileY)) {
+          // Commit to move
+          pacman.tileX = nextTileX;
+          pacman.tileY = nextTileY;
+          pacman.progress = pacman.moveFrames;
+
+          // Tunnel wrap
+          if (pacman.tileX < 0) pacman.tileX = COLS - 1;
+          if (pacman.tileX >= COLS) pacman.tileX = 0;
         } else {
-          // Hit a wall - snap to center and stop
-          snapToTileCenter(char);
-          if (isPacman) {
-            char.dx = 0;
-            char.dy = 0;
-          }
+          // Blocked - stop
+          pacman.dx = 0;
+          pacman.dy = 0;
         }
       }
+    };
 
-      // Tunnel wrapping
-      if (char.px < 0) char.px = canvas.width - TILE_SIZE / 2;
-      if (char.px >= canvas.width) char.px = TILE_SIZE / 2;
+    const updateGhost = (ghost) => {
+      if (ghost.progress > 0) {
+        ghost.progress--;
+        return;
+      }
+
+      // AT TILE CENTER - choose direction
+      const reverse = { dx: -ghost.dx, dy: -ghost.dy };
+      const options = [];
+
+      [[0, -1], [0, 1], [-1, 0], [1, 0]].forEach(([dx, dy]) => {
+        if (dx === reverse.dx && dy === reverse.dy) return;
+        if (canEnter(ghost.tileX + dx, ghost.tileY + dy)) {
+          options.push({ dx, dy });
+        }
+      });
+
+      if (options.length > 0) {
+        // Prefer continuing straight
+        const straight = options.find(o => o.dx === ghost.dx && o.dy === ghost.dy);
+        if (straight && Math.random() > 0.3) {
+          // Keep going
+        } else {
+          const choice = options[Math.floor(Math.random() * options.length)];
+          ghost.dx = choice.dx;
+          ghost.dy = choice.dy;
+        }
+      } else {
+        // Dead end - reverse
+        ghost.dx = reverse.dx;
+        ghost.dy = reverse.dy;
+      }
+
+      // Commit move
+      const nextX = ghost.tileX + ghost.dx;
+      const nextY = ghost.tileY + ghost.dy;
+      if (canEnter(nextX, nextY)) {
+        ghost.tileX = nextX;
+        ghost.tileY = nextY;
+        ghost.progress = ghost.moveFrames;
+
+        // Tunnel wrap
+        if (ghost.tileX < 0) ghost.tileX = COLS - 1;
+        if (ghost.tileX >= COLS) ghost.tileX = 0;
+      }
+    };
+
+    // ============================================
+    // RENDERING (Continuous - Interpolated positions)
+    // ============================================
+
+    const getRenderPos = (char) => {
+      // Calculate interpolated pixel position for smooth rendering
+      const t = 1 - (char.progress / char.moveFrames); // 0 = at prev tile, 1 = at current tile
+      const prevTileX = char.tileX - char.dx;
+      const prevTileY = char.tileY - char.dy;
+
+      const fromX = prevTileX * TILE_SIZE + TILE_SIZE / 2;
+      const fromY = prevTileY * TILE_SIZE + TILE_SIZE / 2;
+      const toX = char.tileX * TILE_SIZE + TILE_SIZE / 2;
+      const toY = char.tileY * TILE_SIZE + TILE_SIZE / 2;
+
+      // Handle tunnel wrap rendering
+      let x = fromX + (toX - fromX) * t;
+      let y = fromY + (toY - fromY) * t;
+
+      // If wrapping, render correctly
+      if (Math.abs(toX - fromX) > TILE_SIZE * 2) {
+        // Tunnel wrap happened
+        x = toX;
+      }
+
+      return { x, y };
     };
 
     // ============================================
     // GAME LOOP
     // ============================================
-    const update = () => {
-      // Move characters
-      moveCharacter(pacman, true);
-      ghosts.forEach(g => moveCharacter(g, false));
 
-      // Eat dots
-      const pTile = pixelToTile(pacman.px, pacman.py);
-      if (pTile.y >= 0 && pTile.y < ROWS && pTile.x >= 0 && pTile.x < COLS) {
-        const tile = mapLayout[pTile.y][pTile.x];
-        if (tile === 0 || tile === 2) {
-          mapLayout[pTile.y][pTile.x] = 3;
-        }
+    const update = () => {
+      // Discrete movement updates
+      updatePacman();
+      ghosts.forEach(updateGhost);
+
+      // Eat dots (discrete check)
+      const tile = mapLayout[pacman.tileY]?.[pacman.tileX];
+      if (tile === 0 || tile === 2) {
+        mapLayout[pacman.tileY][pacman.tileX] = 3;
       }
 
       // ========== RENDERING ==========
@@ -321,22 +309,22 @@ const PacManGame = () => {
       // Draw maze
       for (let r = 0; r < ROWS; r++) {
         for (let c = 0; c < COLS; c++) {
-          const tile = mapLayout[r][c];
+          const t = mapLayout[r][c];
           const x = c * TILE_SIZE;
           const y = r * TILE_SIZE;
 
-          if (tile === 1) {
+          if (t === 1) {
             ctx.fillStyle = '#1e3a8a';
             ctx.fillRect(x + 1, y + 1, TILE_SIZE - 2, TILE_SIZE - 2);
             ctx.strokeStyle = '#3b82f6';
             ctx.lineWidth = 1;
             ctx.strokeRect(x + 2, y + 2, TILE_SIZE - 4, TILE_SIZE - 4);
-          } else if (tile === 0) {
+          } else if (t === 0) {
             ctx.fillStyle = '#fca5a5';
             ctx.beginPath();
             ctx.arc(x + TILE_SIZE / 2, y + TILE_SIZE / 2, 2, 0, Math.PI * 2);
             ctx.fill();
-          } else if (tile === 2) {
+          } else if (t === 2) {
             ctx.fillStyle = '#fca5a5';
             ctx.beginPath();
             ctx.arc(x + TILE_SIZE / 2, y + TILE_SIZE / 2, 4, 0, Math.PI * 2);
@@ -345,10 +333,11 @@ const PacManGame = () => {
         }
       }
 
-      // Draw Pac-Man
+      // Draw Pac-Man (interpolated position)
+      const pacPos = getRenderPos(pacman);
       ctx.save();
-      ctx.translate(pacman.px, pacman.py);
-      
+      ctx.translate(pacPos.x, pacPos.y);
+
       let angle = 0;
       if (pacman.dx === 1) angle = 0;
       else if (pacman.dx === -1) angle = Math.PI;
@@ -356,9 +345,8 @@ const PacManGame = () => {
       else if (pacman.dy === -1) angle = -Math.PI / 2;
       ctx.rotate(angle);
 
-      // Mouth animation
-      pacman.mouth += 0.04 * pacman.mouthDir;
-      if (pacman.mouth >= 0.3) pacman.mouthDir = -1;
+      pacman.mouth += 0.05 * pacman.mouthDir;
+      if (pacman.mouth >= 0.35) pacman.mouthDir = -1;
       if (pacman.mouth <= 0.05) pacman.mouthDir = 1;
 
       ctx.fillStyle = 'yellow';
@@ -368,29 +356,30 @@ const PacManGame = () => {
       ctx.fill();
       ctx.restore();
 
-      // Draw Ghosts
+      // Draw Ghosts (interpolated positions)
       ghosts.forEach(g => {
+        const pos = getRenderPos(g);
         const size = TILE_SIZE * 0.4;
+
         ctx.fillStyle = g.color;
         ctx.beginPath();
-        ctx.arc(g.px, g.py, size, Math.PI, 0);
-        ctx.lineTo(g.px + size, g.py + size * 0.8);
-        ctx.lineTo(g.px - size, g.py + size * 0.8);
+        ctx.arc(pos.x, pos.y, size, Math.PI, 0);
+        ctx.lineTo(pos.x + size, pos.y + size * 0.8);
+        ctx.lineTo(pos.x - size, pos.y + size * 0.8);
         ctx.closePath();
         ctx.fill();
 
         // Eyes
         ctx.fillStyle = 'white';
         ctx.beginPath();
-        ctx.arc(g.px - 3, g.py - 1, 2.5, 0, Math.PI * 2);
-        ctx.arc(g.px + 3, g.py - 1, 2.5, 0, Math.PI * 2);
+        ctx.arc(pos.x - 3, pos.y - 1, 2.5, 0, Math.PI * 2);
+        ctx.arc(pos.x + 3, pos.y - 1, 2.5, 0, Math.PI * 2);
         ctx.fill();
 
-        // Pupils (look in movement direction)
         ctx.fillStyle = '#1e3a8a';
         ctx.beginPath();
-        ctx.arc(g.px - 3 + g.dx * 1.2, g.py - 1 + g.dy * 1.2, 1.2, 0, Math.PI * 2);
-        ctx.arc(g.px + 3 + g.dx * 1.2, g.py - 1 + g.dy * 1.2, 1.2, 0, Math.PI * 2);
+        ctx.arc(pos.x - 3 + g.dx * 1, pos.y - 1 + g.dy * 1, 1.2, 0, Math.PI * 2);
+        ctx.arc(pos.x + 3 + g.dx * 1, pos.y - 1 + g.dy * 1, 1.2, 0, Math.PI * 2);
         ctx.fill();
       });
 
@@ -405,7 +394,7 @@ const PacManGame = () => {
     };
   }, [gameStarted]);
 
-  // Ghost preview component for intro
+  // Ghost preview for intro
   const GhostPreview = ({ color, name }) => (
     <div className="text-center">
       <svg width="40" height="44" viewBox="0 0 40 44" className="mx-auto mb-2">
@@ -459,14 +448,13 @@ const PacManGame = () => {
             <button
               onClick={() => setMusicEnabled(!musicEnabled)}
               className={`p-2 rounded-full transition-colors ${musicEnabled ? 'bg-green-600 hover:bg-green-500' : 'bg-slate-600 hover:bg-slate-500'}`}
-              title={musicEnabled ? 'Music On' : 'Music Off'}
             >
               {musicEnabled ? <Volume2 className="w-5 h-5 text-white" /> : <VolumeX className="w-5 h-5 text-white" />}
             </button>
           </div>
 
           <div className="absolute bottom-4 left-4 text-slate-500 text-xs">
-            Use Arrow Keys to Move
+            Arrow Keys to Move
           </div>
         </div>
       </div>
