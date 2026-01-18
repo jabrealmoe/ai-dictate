@@ -1,4 +1,4 @@
-const Resolver = require('@forge/resolver');
+const Resolver = require('@forge/resolver').default;
 const { fetch, storage, api, route } = require('@forge/api');
 
 const resolver = new Resolver();
