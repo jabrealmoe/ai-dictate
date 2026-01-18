@@ -7,7 +7,14 @@
   "scripts": {
     "deploy": "forge deploy",
     "forge-install": "forge install",
-    "tunnel": "forge tunnel"
+    "tunnel": "forge tunnel",
+    "build": "cd static/frontend && npm install --legacy-peer-deps && npm run build",
+    "lint": "echo 'Linting skipped' && exit 0",
+    "test:unit": "echo 'No unit tests' && exit 0",
+    "test:integration": "echo 'No integration tests' && exit 0",
+    "test:e2e": "echo 'No e2e tests' && exit 0",
+    "test:perf": "echo 'No perf tests' && exit 0",
+    "test:smoke": "echo 'No smoke tests' && exit 0"
   },
   "dependencies": {
     "@forge/api": "^4.0.0",
