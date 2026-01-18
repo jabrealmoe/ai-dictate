@@ -116,6 +116,7 @@ const PacManGame = () => {
     const STATE_PLAY = 1;
     const STATE_DYING = 2;
     const STATE_GAMEOVER = 3;
+    const STATE_FROZEN = 4; // New state for pre-death pause
 
     let gameState = STATE_READY;
     let stateEndTime = Date.now() + 2200; // Initial READY delay
@@ -220,7 +221,7 @@ const PacManGame = () => {
        { x: 15, y: 13, color: '#fb923c', dx: 0, dy: 1 }
     ];
 
-    let pacman = { ...pacmanSpawn, dx: 0, dy: 0, nextDx: 0, nextDy: 0, progress: 0, moveFrames: MOVE_FRAMES, mouth: 0.2, mouthDir: 1 };
+    let pacman = { ...pacmanSpawn, dx: 0, dy: 0, nextDx: 0, nextDy: 0, progress: 0, moveFrames: MOVE_FRAMES, mouth: 0.2, mouthDir: 1, angle: 0 };
     let ghosts = [];
 
     const resetEntities = () => {
@@ -228,6 +229,9 @@ const PacManGame = () => {
         pacman.tileY = pacmanSpawn.y;
         pacman.dx = 0; pacman.dy = 0; pacman.nextDx = 0; pacman.nextDy = 0;
         pacman.progress = 0;
+        pacman.mouth = 0.2;
+        pacman.mouthDir = 1;
+        pacman.angle = 0;
 
         ghosts = ghostConfigs.map(c => {
              const spawn = getValidSpawn(c.x, c.y);
@@ -257,6 +261,46 @@ const PacManGame = () => {
     const handleGameOver = () => {
         setGameStarted(false);
         setHighScore(prev => Math.max(prev, gameStateScore));
+    };
+
+    // ============================================
+    // AUDIO FX
+    // ============================================
+    
+    const playDeathSound = () => {
+      if (!musicEnabled) return;
+      try {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContext) return;
+        const ctx = audioContextRef.current || new AudioContext();
+        audioContextRef.current = ctx; // Ensure we keep the reference
+        
+        const now = ctx.currentTime;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        
+        osc.type = 'triangle'; // Smoother sound
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        
+        // Descending pitch "Whoop-whoop-whoop" style
+        osc.frequency.setValueAtTime(400, now);
+        // Step down
+        for (let i = 0; i < 10; i++) {
+             osc.frequency.linearRampToValueAtTime(400 - (i * 40), now + (i * 0.1));
+             gain.gain.setValueAtTime(0.1, now + (i * 0.1));
+             gain.gain.linearRampToValueAtTime(0.05, now + (i * 0.1) + 0.05); // quick pulse
+             gain.gain.linearRampToValueAtTime(0.1, now + (i * 0.1) + 0.1);
+        }
+        
+        // Final fade
+        gain.gain.linearRampToValueAtTime(0, now + 1.5);
+        osc.start(now);
+        osc.stop(now + 1.6);
+        
+      } catch (e) {
+        console.error("Audio playback failed", e);
+      }
     };
 
     // ============================================
@@ -385,48 +429,88 @@ const PacManGame = () => {
         const pPos = getRenderPos(pacman);
         ctx.save();
         ctx.translate(pPos.x, pPos.y);
-        let angle = 0;
-        if(pacman.dx === -1) angle = Math.PI;
-        else if(pacman.dy === -1) angle = -Math.PI/2;
-        else if(pacman.dy === 1) angle = Math.PI/2;
-        ctx.rotate(angle);
         
-        // Mouth animation only loop if PLAYING to freeze mouth on death
-        if (gameState === STATE_PLAY) {
-             pacman.mouth += 0.05 * pacman.mouthDir;
-             if(pacman.mouth > 0.35) pacman.mouthDir = -1;
-             if(pacman.mouth < 0.05) pacman.mouthDir = 1;
+        if (gameState === STATE_DYING) {
+             // Death Animation: Spin and Shrink
+             // Calculate animation progress (0 to 1)
+             const totalDuration = 1500;
+             const elapsed = Math.max(0, totalDuration - (stateEndTime - Date.now() - 500)); // -500 buffer
+             const progress = Math.min(1, elapsed / 1200);
+             
+             // Spin effect
+             ctx.rotate(progress * Math.PI * 4);
+             
+             // Dissolve/Shrink effect (opening mouth all the way)
+             const startMouth = 0.2;
+             const endMouth = 2; // Full circle vanish
+             const currentMouth = startMouth + (endMouth - startMouth) * progress;
+             
+             ctx.fillStyle = 'yellow';
+             ctx.beginPath();
+             // Draw arc that shrinks as mouth widens
+             if (currentMouth < 1) {
+                 ctx.arc(0, 0, TILE_SIZE*0.4 * (1-progress*0.5), currentMouth*Math.PI, (2-currentMouth)*Math.PI);
+                 ctx.lineTo(0,0);
+                 ctx.fill();
+             } else {
+                 // POP effect at end?
+                 if (progress > 0.9) {
+                     ctx.fillStyle = '#ffff00';
+                     ctx.beginPath();
+                     ctx.arc(0, 0, TILE_SIZE * 0.6 * (1-progress), 0, Math.PI*2);
+                     ctx.fill();
+                 }
+             }
+             
+        } else {
+            // Normal Render
+            let angle = pacman.angle || 0;
+            if(pacman.dx === 1) angle = 0;
+            if(pacman.dx === -1) angle = Math.PI;
+            if(pacman.dy === -1) angle = -Math.PI/2;
+            if(pacman.dy === 1) angle = Math.PI/2;
+            pacman.angle = angle; // Store for frozen state
+            ctx.rotate(angle);
+            
+            // Mouth animation
+            if (gameState === STATE_PLAY) {
+                 pacman.mouth += 0.05 * pacman.mouthDir;
+                 if(pacman.mouth > 0.35) pacman.mouthDir = -1;
+                 if(pacman.mouth < 0.05) pacman.mouthDir = 1;
+            }
+    
+            ctx.fillStyle = 'yellow';
+            ctx.beginPath();
+            ctx.arc(0, 0, TILE_SIZE*0.4, pacman.mouth*Math.PI, (2-pacman.mouth)*Math.PI);
+            ctx.lineTo(0,0);
+            ctx.fill();
         }
-
-        ctx.fillStyle = 'yellow';
-        ctx.beginPath();
-        ctx.arc(0, 0, TILE_SIZE*0.4, pacman.mouth*Math.PI, (2-pacman.mouth)*Math.PI);
-        ctx.lineTo(0,0);
-        ctx.fill();
         ctx.restore();
 
-        // Ghosts
-        ghosts.forEach(g => {
-            const gPos = getRenderPos(g);
-            ctx.fillStyle = g.color;
-            ctx.beginPath();
-            ctx.arc(gPos.x, gPos.y, TILE_SIZE*0.4, Math.PI, 0);
-            ctx.lineTo(gPos.x + TILE_SIZE*0.4, gPos.y + TILE_SIZE*0.4);
-            ctx.lineTo(gPos.x - TILE_SIZE*0.4, gPos.y + TILE_SIZE*0.4);
-            ctx.fill();
-            
-            // Eyes
-            ctx.fillStyle = 'white';
-            ctx.beginPath();
-            ctx.arc(gPos.x - 6, gPos.y - 4, 4, 0, Math.PI*2);
-            ctx.arc(gPos.x + 6, gPos.y - 4, 4, 0, Math.PI*2);
-            ctx.fill();
-            ctx.fillStyle = 'blue';
-            ctx.beginPath();
-            ctx.arc(gPos.x - 6 + g.dx*2, gPos.y - 4 + g.dy*2, 2, 0, Math.PI*2);
-            ctx.arc(gPos.x + 6 + g.dx*2, gPos.y - 4 + g.dy*2, 2, 0, Math.PI*2);
-            ctx.fill();
-        });
+        // Ghosts - Hide during death
+        if (gameState !== STATE_DYING && gameState !== STATE_GAMEOVER) {
+            ghosts.forEach(g => {
+                const gPos = getRenderPos(g);
+                ctx.fillStyle = g.color;
+                ctx.beginPath();
+                ctx.arc(gPos.x, gPos.y, TILE_SIZE*0.4, Math.PI, 0);
+                ctx.lineTo(gPos.x + TILE_SIZE*0.4, gPos.y + TILE_SIZE*0.4);
+                ctx.lineTo(gPos.x - TILE_SIZE*0.4, gPos.y + TILE_SIZE*0.4);
+                ctx.fill();
+                
+                // Eyes
+                ctx.fillStyle = 'white';
+                ctx.beginPath();
+                ctx.arc(gPos.x - 6, gPos.y - 4, 4, 0, Math.PI*2);
+                ctx.arc(gPos.x + 6, gPos.y - 4, 4, 0, Math.PI*2);
+                ctx.fill();
+                ctx.fillStyle = 'blue';
+                ctx.beginPath();
+                ctx.arc(gPos.x - 6 + g.dx*2, gPos.y - 4 + g.dy*2, 2, 0, Math.PI*2);
+                ctx.arc(gPos.x + 6 + g.dx*2, gPos.y - 4 + g.dy*2, 2, 0, Math.PI*2);
+                ctx.fill();
+            });
+        }
 
         // ============================
         // STATE TEXT OVERLAYS
@@ -485,10 +569,19 @@ const PacManGame = () => {
                     const dx = Math.abs(g.tileX - pacman.tileX);
                     const dy = Math.abs(g.tileY - pacman.tileY);
                     if (dx < 0.8 && dy < 0.8) {
-                        gameState = STATE_DYING;
-                        stateEndTime = now + 1500; // Pause for death animation
+                        // HIT!
+                        gameState = STATE_FROZEN;
+                        stateEndTime = now + 500; // Freeze for 500ms
                     }
                 }
+            }
+            else if (gameState === STATE_FROZEN) {
+                 // Just wait, then trigger death
+                 if (now > stateEndTime) {
+                     gameState = STATE_DYING;
+                     stateEndTime = now + 1500; // Death animation duration
+                     playDeathSound();
+                 }
             }
             else if (gameState === STATE_DYING) {
                 if (now > stateEndTime) {
