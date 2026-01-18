@@ -127,8 +127,18 @@ resolver.define('sendAudioToN8n', async (req) => {
     throw new Error(`N8n responded with ${response.status} ${response.statusText}`);
   }
 
-  const data = await response.json();
-  return data;
+  const text = await response.text();
+  try {
+    const data = JSON.parse(text);
+    return data;
+  } catch (err) {
+    console.warn("Received non-JSON response from N8n:", text);
+    // Return a structured object so the frontend can handle it gracefully
+    return { 
+      message: "Received non-JSON response from backend", 
+      rawContent: text 
+    };
+  }
 });
 
 exports.handler = resolver.getDefinitions();
