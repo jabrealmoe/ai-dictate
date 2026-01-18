@@ -125,15 +125,16 @@ jobs:
         run: npm run test:e2e
       - name: Performance Tests
         run: npm run test:perf
-      - name: Promote to Production
-        if: success()
-        run: |
-          git config --global user.name 'github-actions[bot]'
-          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
-          git fetch origin main
-          git checkout main
-          git merge staging --allow-unrelated-histories -X theirs -m "chore(release): Promote Staging to Production"
-          git push origin main
+      # - name: Promote to Production
+      #   if: success()
+      #   run: |
+      #     echo "Automatic promotion to production is disabled. Please create a Pull Request from 'staging' to 'main' to deploy."
+      #     # git config --global user.name 'github-actions[bot]'
+      #     # git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+      #     # git fetch origin main
+      #     # git checkout main
+      #     # git merge staging --allow-unrelated-histories -X theirs -m "chore(release): Promote Staging to Production"
+      #     # git push origin main
 
   # ------------------------------------------------------------------
   # Stage 4: Versioning
