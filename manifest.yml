@@ -19,7 +19,6 @@ resources:
   - key: main
     path: static/frontend/build
 app:
-  name: Dr. Jira Dictate
   id: ari:cloud:ecosystem::app/b5b4d1e3-20fe-4455-861f-33f8626e9d30
   runtime:
     name: nodejs20.x
@@ -31,6 +30,6 @@ permissions:
   external:
     fetch:
       backend:
-        - "https://jabreal.app.n8n.cloud"
+        - address: https://jabreal.app.n8n.cloud
       client:
-        - "*"
+        - address: https://jabreal.app.n8n.cloud
