@@ -2,12 +2,14 @@ import React, { useState, useRef, useEffect } from 'react';
 import { request, invoke, view } from '@forge/bridge';
 import { Mic, Square, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
 import AdminPage from './components/AdminPage';
+import IssueReview from './components/IssueReview';
 
 function App() {
   const [context, setContext] = useState(null);
   const [isRecording, setIsRecording] = useState(false);
   const [processingStatus, setProcessingStatus] = useState('idle'); // idle, recording, processing, success, error
   const [message, setMessage] = useState('');
+  const [suggestions, setSuggestions] = useState(null);
   const mediaRecorderRef = useRef(null);
   const chunksRef = useRef([]);
 
@@ -24,9 +26,11 @@ function App() {
       return <AdminPage />;
   }
 
-  // Audio Feedback Helper
   const playChime = (type = 'start') => {
-    try {
+      // Audio feedback code logic - truncated for brevity if not changed, but must include if inside replace range
+      // ... actually, I must include function body if I replace the whole thing or careful range.
+      // Let's assume playChime is unchanged.
+      try {
       const AudioContext = window.AudioContext || window.webkitAudioContext;
       if (!AudioContext) return;
       const ctx = new AudioContext();
@@ -129,6 +133,14 @@ function App() {
       
       console.log("N8n Response:", data); // Debugging
 
+      // Handle Array Response (Suggestions)
+      if (Array.isArray(data)) {
+          setSuggestions(data);
+          setProcessingStatus('reviewing');
+          return;
+      }
+
+      // Handle Legacy/Single Object Response
       if (data && data.status === 'ignored') {
         setProcessingStatus('idle'); // or 'warning' if you want a different visual state
         setMessage(data.message || data.reason || "I didn't catch that. Could you try again?");
@@ -159,10 +171,37 @@ function App() {
       }
     }
   };
+  
+  const handleIssueCreated = (result) => {
+      setSuggestions(null);
+      setProcessingStatus('success');
+      setMessage(`Issue created: ${result.key}`);
+      
+      setTimeout(() => {
+          setProcessingStatus('idle');
+          setMessage('');
+      }, 3000);
+  };
+
+  const handleCancelReview = () => {
+      setSuggestions(null);
+      setProcessingStatus('idle');
+      setMessage('');
+  };
+
+  if (suggestions && processingStatus === 'reviewing') {
+      return (
+          <IssueReview 
+              suggestions={suggestions} 
+              onCancel={handleCancelReview}
+              onIssueCreated={handleIssueCreated}
+              context={context}
+          />
+      );
+  }
 
   return (
     <div className="p-4 flex flex-col items-center justify-center space-y-4 font-sans text-slate-800">
-
       
       <div className="relative">
         <button
