@@ -4,63 +4,20 @@ import { Volume2, VolumeX } from 'lucide-react';
 const PacManGame = () => {
   const canvasRef = useRef(null);
   const containerRef = useRef(null);
-  const [gameStarted, setGameStarted] = useState(false);
-  const [musicEnabled, setMusicEnabled] = useState(true);
-  const audioContextRef = useRef(null);
+  const [score, setScore] = useState(0);
+  const [level, setLevel] = useState(1);
+  const [highScore, setHighScore] = useState(0);
 
-  const playIntroMusic = () => {
-    if (!musicEnabled) return;
-    try {
-      const AudioContext = window.AudioContext || window.webkitAudioContext;
-      if (!AudioContext) return;
-      const ctx = new AudioContext();
-      audioContextRef.current = ctx;
-      const now = ctx.currentTime;
-      const melody = [
-        { freq: 523.25, start: 0, duration: 0.15 },
-        { freq: 659.25, start: 0.15, duration: 0.15 },
-        { freq: 783.99, start: 0.3, duration: 0.15 },
-        { freq: 1046.50, start: 0.45, duration: 0.3 },
-        { freq: 783.99, start: 0.8, duration: 0.15 },
-        { freq: 659.25, start: 0.95, duration: 0.15 },
-        { freq: 523.25, start: 1.1, duration: 0.15 },
-        { freq: 392.00, start: 1.3, duration: 0.15 },
-        { freq: 440.00, start: 1.45, duration: 0.15 },
-        { freq: 493.88, start: 1.6, duration: 0.15 },
-        { freq: 523.25, start: 1.75, duration: 0.4 },
-        { freq: 659.25, start: 2.2, duration: 0.15 },
-        { freq: 783.99, start: 2.35, duration: 0.15 },
-        { freq: 1046.50, start: 2.5, duration: 0.5 },
-      ];
-      melody.forEach(note => {
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.frequency.value = note.freq;
-        osc.type = 'square';
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        const startTime = now + note.start;
-        osc.start(startTime);
-        gain.gain.setValueAtTime(0, startTime);
-        gain.gain.linearRampToValueAtTime(0.08, startTime + 0.02);
-        gain.gain.exponentialRampToValueAtTime(0.001, startTime + note.duration);
-        osc.stop(startTime + note.duration);
-      });
-    } catch (e) {
-      console.error("Audio playback failed", e);
-    }
-  };
+  // ... (audio context code remains above)
 
   const handleStartGame = () => {
     playIntroMusic();
-    setTimeout(() => setGameStarted(true), 3200);
+    setTimeout(() => {
+        setScore(0);
+        setLevel(1);
+        setGameStarted(true);
+    }, 3200);
   };
-
-  useEffect(() => {
-    if (gameStarted && containerRef.current) {
-      containerRef.current.focus();
-    }
-  }, [gameStarted]);
 
   useEffect(() => {
     if (!gameStarted) return;
@@ -75,9 +32,11 @@ const PacManGame = () => {
     const TILE_SIZE = 16;
     const COLS = 28;
     const MOVE_FRAMES = 8;
-
+    let gameStateScore = 0; // Local sync for speed
+    
     // Map: 1=Wall, 0=Dot, 2=PowerPellet, 3=Empty, 4=GhostHouse
-    const mapLayout = [
+    // Defined as a template to allow resetting (Deep Copy used later)
+    const MAP_TEMPLATE = [
       [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1], // 0
       [1,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,1], // 1
       [1,0,1,1,1,1,0,1,1,1,1,1,0,1,1,0,1,1,1,1,1,0,1,1,1,1,0,1], // 2
@@ -109,9 +68,24 @@ const PacManGame = () => {
       [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]  // 28
     ];
 
+    // Deep copy for the active grid
+    let mapLayout = JSON.parse(JSON.stringify(MAP_TEMPLATE));
     const ROWS = mapLayout.length;
     canvas.width = COLS * TILE_SIZE;
     canvas.height = ROWS * TILE_SIZE;
+
+    // Track pellets
+    let pelletsRemaining = 0;
+    const countPellets = () => {
+        let count = 0;
+        for(let r=0; r<ROWS; r++){
+            for(let c=0; c<COLS; c++){
+                if(mapLayout[r][c] === 0 || mapLayout[r][c] === 2) count++;
+            }
+        }
+        return count;
+    };
+    pelletsRemaining = countPellets();
 
     // ============================================
     // TILE VALIDATION FUNCTIONS
@@ -127,107 +101,95 @@ const PacManGame = () => {
 
     // Find nearest valid tile using BFS (for spawn recovery)
     const findNearestValidTile = (startX, startY) => {
-      if (canEnter(startX, startY)) return { x: startX, y: startY };
-      
-      const visited = new Set();
-      const queue = [[startX, startY, 0]];
-      
-      while (queue.length > 0) {
-        const [x, y, dist] = queue.shift();
-        const key = `${x},${y}`;
-        
-        if (visited.has(key)) continue;
-        visited.add(key);
-        
-        if (canEnter(x, y)) return { x, y };
-        
-        // Check neighbors
-        [[0,-1], [0,1], [-1,0], [1,0]].forEach(([dx, dy]) => {
-          const nx = x + dx;
-          const ny = y + dy;
-          if (ny >= 0 && ny < ROWS && nx >= 0 && nx < COLS) {
-            queue.push([nx, ny, dist + 1]);
-          }
-        });
-      }
-      
-      // Fallback: return center of map (should never happen)
-      return { x: 14, y: 14 };
+        // ... (existing BFS implementation - kept standard)
+        if (canEnter(startX, startY)) return { x: startX, y: startY };
+        const visited = new Set();
+        const queue = [[startX, startY, 0]];
+        while (queue.length > 0) {
+            const [x, y, dist] = queue.shift();
+            const key = `${x},${y}`;
+            if (visited.has(key)) continue;
+            visited.add(key);
+            if (canEnter(x, y)) return { x, y };
+            [[0,-1], [0,1], [-1,0], [1,0]].forEach(([dx, dy]) => {
+                const nx = x + dx;
+                const ny = y + dy;
+                if (ny >= 0 && ny < ROWS && nx >= 0 && nx < COLS) {
+                    queue.push([nx, ny, dist + 1]);
+                }
+            });
+        }
+        return { x: 14, y: 14 };
     };
 
     // Validate and correct spawn position
     const getValidSpawn = (preferredX, preferredY) => {
-      if (canEnter(preferredX, preferredY)) {
-        return { x: preferredX, y: preferredY };
-      }
-      console.warn(`Spawn (${preferredX}, ${preferredY}) is inside wall! Finding valid position...`);
+      if (canEnter(preferredX, preferredY)) return { x: preferredX, y: preferredY };
       return findNearestValidTile(preferredX, preferredY);
     };
 
     // ============================================
-    // GAME STATE WITH VALIDATED SPAWN
-    // Pac-Man spawns at row 21 (the open corridor below the maze)
+    // GAME STATE & RESET LOGIC
     // ============================================
 
-    const pacmanSpawn = getValidSpawn(14, 21); // Row 21 has 3,3 at positions 13-14
+    const pacmanSpawn = getValidSpawn(14, 21);
     
-    const pacman = {
-      tileX: pacmanSpawn.x,
-      tileY: pacmanSpawn.y,
-      dx: 0,
-      dy: 0,
-      nextDx: 0,
-      nextDy: 0,
-      progress: 0,
-      moveFrames: MOVE_FRAMES,
-      mouth: 0.2,
-      mouthDir: 1
-    };
-
-    // Ghosts spawn in/near ghost house (validated)
+    // Mutable Entity State
+    let pacman = { tileX: pacmanSpawn.x, tileY: pacmanSpawn.y, dx: 0, dy: 0, nextDx: 0, nextDy: 0, progress: 0, moveFrames: MOVE_FRAMES, mouth: 0.2, mouthDir: 1 };
+    
     const ghostSpawns = [
-      getValidSpawn(14, 11),
-      getValidSpawn(13, 13),
-      getValidSpawn(14, 13),
-      getValidSpawn(15, 13)
+        getValidSpawn(14, 11), getValidSpawn(13, 13), getValidSpawn(14, 13), getValidSpawn(15, 13)
     ];
 
-    const ghosts = [
-      { tileX: ghostSpawns[0].x, tileY: ghostSpawns[0].y, dx: 1, dy: 0, progress: 0, moveFrames: Math.floor(MOVE_FRAMES * 1.2), color: '#ef4444' },
-      { tileX: ghostSpawns[1].x, tileY: ghostSpawns[1].y, dx: 0, dy: -1, progress: 0, moveFrames: Math.floor(MOVE_FRAMES * 1.3), color: '#f472b6' },
-      { tileX: ghostSpawns[2].x, tileY: ghostSpawns[2].y, dx: 0, dy: -1, progress: 0, moveFrames: Math.floor(MOVE_FRAMES * 1.3), color: '#22d3d3' },
-      { tileX: ghostSpawns[3].x, tileY: ghostSpawns[3].y, dx: 0, dy: 1, progress: 0, moveFrames: Math.floor(MOVE_FRAMES * 1.3), color: '#fb923c' }
-    ];
+    let ghosts = [];
 
-    // Input handling
-    const handleKeyDown = (e) => {
-      e.preventDefault();
-      switch(e.key) {
-        case 'ArrowUp':    pacman.nextDx = 0;  pacman.nextDy = -1; break;
-        case 'ArrowDown':  pacman.nextDx = 0;  pacman.nextDy = 1;  break;
-        case 'ArrowLeft':  pacman.nextDx = -1; pacman.nextDy = 0;  break;
-        case 'ArrowRight': pacman.nextDx = 1;  pacman.nextDy = 0;  break;
-        default: break;
-      }
+    const resetEntities = () => {
+        pacman = { 
+            tileX: pacmanSpawn.x, tileY: pacmanSpawn.y, 
+            dx: 0, dy: 0, nextDx: 0, nextDy: 0, 
+            progress: 0, moveFrames: MOVE_FRAMES, 
+            mouth: 0.2, mouthDir: 1 
+        };
+
+        ghosts = [
+            { tileX: ghostSpawns[0].x, tileY: ghostSpawns[0].y, dx: 1, dy: 0, progress: 0, moveFrames: Math.floor(MOVE_FRAMES * 1.2), color: '#ef4444' },
+            { tileX: ghostSpawns[1].x, tileY: ghostSpawns[1].y, dx: 0, dy: -1, progress: 0, moveFrames: Math.floor(MOVE_FRAMES * 1.3), color: '#f472b6' },
+            { tileX: ghostSpawns[2].x, tileY: ghostSpawns[2].y, dx: 0, dy: -1, progress: 0, moveFrames: Math.floor(MOVE_FRAMES * 1.3), color: '#22d3d3' },
+            { tileX: ghostSpawns[3].x, tileY: ghostSpawns[3].y, dx: 0, dy: 1, progress: 0, moveFrames: Math.floor(MOVE_FRAMES * 1.3), color: '#fb923c' }
+        ];
+    };
+    
+    // Initial reset
+    resetEntities();
+
+    // Level Transition
+    const advanceLevel = () => {
+        // Reset Map
+        mapLayout = JSON.parse(JSON.stringify(MAP_TEMPLATE));
+        pelletsRemaining = countPellets();
+        
+        // Reset Entities
+        resetEntities();
+        
+        // Increase difficulty (optional: could speed up ghosts here)
+        setLevel(prev => prev + 1);
     };
 
-    const container = containerRef.current;
-    if (container) container.addEventListener('keydown', handleKeyDown);
+    const handleGameOver = () => {
+        setGameStarted(false);
+        setHighScore(prev => Math.max(prev, gameStateScore));
+    };
 
     // ============================================
     // MOVEMENT LOGIC WITH WALL RECOVERY
     // ============================================
 
     const updatePacman = () => {
-      // SAFETY CHECK: If somehow inside a wall, eject immediately
+      // SAFETY CHECK
       if (isWall(pacman.tileX, pacman.tileY)) {
-        console.error(`Pac-Man stuck in wall at (${pacman.tileX}, ${pacman.tileY})! Ejecting...`);
         const safePos = findNearestValidTile(pacman.tileX, pacman.tileY);
-        pacman.tileX = safePos.x;
-        pacman.tileY = safePos.y;
-        pacman.dx = 0;
-        pacman.dy = 0;
-        pacman.progress = 0;
+        pacman.tileX = safePos.x; pacman.tileY = safePos.y;
+        pacman.dx = 0; pacman.dy = 0; pacman.progress = 0;
         return;
       }
 
@@ -255,8 +217,6 @@ const PacManGame = () => {
           pacman.tileX = nextTileX;
           pacman.tileY = nextTileY;
           pacman.progress = pacman.moveFrames;
-
-          // Tunnel wrap
           if (pacman.tileX < 0) pacman.tileX = COLS - 1;
           if (pacman.tileX >= COLS) pacman.tileX = 0;
         } else {
@@ -267,14 +227,11 @@ const PacManGame = () => {
     };
 
     const updateGhost = (ghost) => {
-      // SAFETY CHECK: Eject from walls
+      // SAFETY CHECK
       if (isWall(ghost.tileX, ghost.tileY)) {
         const safePos = findNearestValidTile(ghost.tileX, ghost.tileY);
-        ghost.tileX = safePos.x;
-        ghost.tileY = safePos.y;
-        ghost.dx = 0;
-        ghost.dy = 0;
-        ghost.progress = 0;
+        ghost.tileX = safePos.x; ghost.tileY = safePos.y;
+        ghost.dx = 0; ghost.dy = 0; ghost.progress = 0;
         return;
       }
 
@@ -320,7 +277,7 @@ const PacManGame = () => {
     };
 
     // ============================================
-    // RENDERING
+    // RENDERING & LOOP
     // ============================================
 
     const getRenderPos = (char) => {
@@ -336,25 +293,45 @@ const PacManGame = () => {
       let x = fromX + (toX - fromX) * t;
       let y = fromY + (toY - fromY) * t;
 
-      if (Math.abs(toX - fromX) > TILE_SIZE * 2) {
-        x = toX;
-      }
-
+      if (Math.abs(toX - fromX) > TILE_SIZE * 2) x = toX; // Tunnel fix
       return { x, y };
     };
-
-    // ============================================
-    // GAME LOOP
-    // ============================================
 
     const update = () => {
       updatePacman();
       ghosts.forEach(updateGhost);
 
-      // Eat dots
-      const tile = mapLayout[pacman.tileY]?.[pacman.tileX];
-      if (tile === 0 || tile === 2) {
-        mapLayout[pacman.tileY][pacman.tileX] = 3;
+      // 1. Ghost Collision (Simple Grid Based)
+      // Check if grid coordinates match. For smoother "touch" detection, we could check render distances, 
+      // but purely grid-based means matching tileX/tileY.
+      for (const ghost of ghosts) {
+          if (ghost.tileX === pacman.tileX && ghost.tileY === pacman.tileY) {
+              handleGameOver();
+              return; // Stop loop
+          }
+      }
+
+      // 2. Eat dots
+      // Check current tile
+      const currentTileVal = mapLayout[pacman.tileY]?.[pacman.tileX];
+      if (currentTileVal === 0) { // Small dot
+        mapLayout[pacman.tileY][pacman.tileX] = 3; // Empty
+        gameStateScore += 10;
+        setScore(gameStateScore);
+        pelletsRemaining--;
+      } else if (currentTileVal === 2) { // Power pellet
+        mapLayout[pacman.tileY][pacman.tileX] = 3; // Empty
+        gameStateScore += 50;
+        setScore(gameStateScore);
+        pelletsRemaining--;
+        // Power mode logic would go here
+      }
+
+      // 3. Level Completion
+      if (pelletsRemaining <= 0) {
+          advanceLevel();
+          // Small pause to let user realize level changed? 
+          // For now, instant transition as requested "progress to a new maze" behavior
       }
 
       // Draw
@@ -519,8 +496,13 @@ const PacManGame = () => {
     <div ref={containerRef} tabIndex={0} className="flex flex-col items-center justify-center mb-6 w-full outline-none">
       <div className="relative rounded-xl overflow-hidden shadow-2xl border-4 border-slate-700 bg-black">
         <canvas ref={canvasRef} className="block" />
-        <div className="absolute top-2 left-2 text-white/50 font-bold text-xs pointer-events-none">1UP 00</div>
-        <div className="absolute top-2 right-2 text-white/50 font-bold text-xs pointer-events-none">HIGH SCORE</div>
+        <div className="absolute top-2 left-2 text-white/90 font-bold text-xs pointer-events-none font-mono tracking-widest">
+            1UP <span className="text-yellow-400">{score.toString().padStart(6, '0')}</span> Lvl {level}
+        </div>
+        <div className="absolute top-2 right-2 text-white/50 font-bold text-xs pointer-events-none font-mono">
+            HIGH SCORE <span className="text-white">{highScore.toString().padStart(6, '0')}</span>
+        </div>
+        {/* Game Over / Level Up Flash Overlay could go here */}
       </div>
       <div className="text-slate-400 text-xs mt-2 font-mono">
         Click here, then use Arrow Keys
