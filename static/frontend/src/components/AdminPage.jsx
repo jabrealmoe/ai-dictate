@@ -29,7 +29,7 @@ const AdminPage = () => {
     const { name, value } = e.target;
     setSettings(prev => ({
       ...prev,
-      [name]: parseFloat(value) // Simplification: assuming all our numeric inputs
+      [name]: name === 'webhookUrl' ? value : parseFloat(value) 
     }));
   };
 
@@ -62,7 +62,25 @@ const AdminPage = () => {
       <div className="bg-white rounded-lg shadow-md p-6 mt-8 border border-slate-200">
         <div className="flex items-center space-x-2 mb-6 text-slate-700">
            <Cpu className="w-6 h-6" />
-           <h2 className="text-2xl font-bold">AI Engine Configuration</h2>
+           <h2 className="text-2xl font-bold">N8N Engine Configuration</h2>
+        </div>
+
+        <div className="grid grid-cols-1 gap-8 mb-8">
+             {/* Webhook URL */}
+             <div className="space-y-2">
+                <label className="block text-sm font-medium text-slate-700">N8N Webhook URL</label>
+                 <input 
+                  type="text" 
+                  name="webhookUrl" 
+                  value={settings.webhookUrl || ''} 
+                  onChange={handleChange}
+                  placeholder="https://your-n8n-instance.com/webhook/..."
+                  className="w-full p-2 border border-slate-300 rounded focus:ring-2 focus:ring-blue-200 focus:border-blue-500 outline-none font-mono text-sm"
+                />
+                 <p className="text-xs text-slate-500">
+                    If set, this overrides the <code className="bg-slate-100 px-1 rounded">N8N_WEBHOOK_URL</code> environment variable.
+                 </p>
+             </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -143,7 +161,7 @@ const AdminPage = () => {
       </div>
       
       <div className="mt-8 text-center text-slate-400 text-xs text-mono">
-        Dr. Jira Dictate v3.1.0 (Lite)
+        Dr. Jira Dictate v3.2.0 (Hybrid Config)
       </div>
     </div>
   );
