@@ -80,8 +80,9 @@ const PacManGame = () => {
     setTimeout(() => {
         setScore(0);
         setLevel(1);
+        setLives(3); // Reset lives
         setGameStarted(true);
-    }, 3800); // Extended wait for Ms Pacman intro
+    }, 3200);
   };
 
   useEffect(() => {
@@ -98,6 +99,7 @@ const PacManGame = () => {
     const COLS = 28;
     const MOVE_FRAMES = 8;
     let gameStateScore = 0; // Local sync for speed
+    let gameLives = 3; // Local sync
     
     // Map: 1=Wall, 0=Dot, 2=PowerPellet, 3=Empty, 4=GhostHouse
     // Defined as a template to allow resetting (Deep Copy used later)
@@ -562,7 +564,7 @@ const PacManGame = () => {
       <div className="relative rounded-xl overflow-hidden shadow-2xl border-4 border-slate-700 bg-black">
         <canvas ref={canvasRef} className="block" />
         <div className="absolute top-2 left-2 text-white/90 font-bold text-xs pointer-events-none font-mono tracking-widest">
-            1UP <span className="text-yellow-400">{score.toString().padStart(6, '0')}</span> Lvl {level}
+            1UP <span className="text-yellow-400">{score.toString().padStart(6, '0')}</span> Lvl {level} Lives <span className="text-red-500">{lives}</span>
         </div>
         <div className="absolute top-2 right-2 text-white/50 font-bold text-xs pointer-events-none font-mono">
             HIGH SCORE <span className="text-white">{highScore.toString().padStart(6, '0')}</span>
