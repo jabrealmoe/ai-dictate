@@ -4,11 +4,17 @@ import { Volume2, VolumeX } from 'lucide-react';
 const PacManGame = () => {
   const canvasRef = useRef(null);
   const containerRef = useRef(null);
+  
+  // Game UI State
   const [score, setScore] = useState(0);
   const [level, setLevel] = useState(1);
   const [highScore, setHighScore] = useState(0);
+  const [lives, setLives] = useState(3);
+  
+  // App Logic State
   const [gameStarted, setGameStarted] = useState(false);
   const [musicEnabled, setMusicEnabled] = useState(true);
+  
   const audioContextRef = useRef(null);
 
   const playIntroMusic = () => {
@@ -60,7 +66,7 @@ const PacManGame = () => {
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
         osc.frequency.value = note.freq;
-        osc.type = 'triangle'; // Smoother tone
+        osc.type = 'triangle'; 
         osc.connect(gain);
         gain.connect(ctx.destination);
         const startTime = now + note.start;
@@ -80,10 +86,16 @@ const PacManGame = () => {
     setTimeout(() => {
         setScore(0);
         setLevel(1);
-        setLives(3); // Reset lives
+        setLives(3);
         setGameStarted(true);
     }, 3200);
   };
+
+  useEffect(() => {
+    if (gameStarted && containerRef.current) {
+      containerRef.current.focus();
+    }
+  }, [gameStarted]);
 
   useEffect(() => {
     if (!gameStarted) return;
@@ -95,47 +107,45 @@ const PacManGame = () => {
     // ============================================
     // CONFIGURATION
     // ============================================
-    const TILE_SIZE = 32; // Doubled size for wider screen
+    const TILE_SIZE = 32;
     const COLS = 28;
-    const MOVE_FRAMES = 8;
-    let gameStateScore = 0; // Local sync for speed
-    let gameLives = 3; // Local sync
-    
+    const MOVE_FRAMES = 8; // Animation smoothness
+    let gameStateScore = 0; 
+    let gameLives = 3; 
+
     // Map: 1=Wall, 0=Dot, 2=PowerPellet, 3=Empty, 4=GhostHouse
-    // Defined as a template to allow resetting (Deep Copy used later)
     const MAP_TEMPLATE = [
-      [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1], // 0
-      [1,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,1], // 1
-      [1,0,1,1,1,1,0,1,1,1,1,1,0,1,1,0,1,1,1,1,1,0,1,1,1,1,0,1], // 2
-      [1,2,1,1,1,1,0,1,1,1,1,1,0,1,1,0,1,1,1,1,1,0,1,1,1,1,2,1], // 3
-      [1,0,1,1,1,1,0,1,1,1,1,1,0,1,1,0,1,1,1,1,1,0,1,1,1,1,0,1], // 4
-      [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1], // 5
-      [1,0,1,1,1,1,0,1,1,0,1,1,1,1,1,1,1,1,0,1,1,0,1,1,1,1,0,1], // 6
-      [1,0,1,1,1,1,0,1,1,0,1,1,1,1,1,1,1,1,0,1,1,0,1,1,1,1,0,1], // 7
-      [1,0,0,0,0,0,0,1,1,0,0,0,0,1,1,0,0,0,0,1,1,0,0,0,0,0,0,1], // 8
-      [1,1,1,1,1,1,0,1,1,1,1,1,3,1,1,3,1,1,1,1,1,0,1,1,1,1,1,1], // 9
-      [3,3,3,3,3,1,0,1,1,1,1,1,3,1,1,3,1,1,1,1,1,0,1,3,3,3,3,3], // 10
-      [3,3,3,3,3,1,0,1,1,3,3,3,3,3,3,3,3,3,3,1,1,0,1,3,3,3,3,3], // 11
-      [1,1,1,1,1,1,0,1,1,3,1,1,4,4,4,4,1,1,3,1,1,0,1,1,1,1,1,1], // 12
-      [3,3,3,3,3,3,0,3,3,3,1,4,4,4,4,4,4,1,3,3,3,0,3,3,3,3,3,3], // 13 (tunnel row)
-      [1,1,1,1,1,1,0,1,1,3,1,1,1,1,1,1,1,1,3,1,1,0,1,1,1,1,1,1], // 14
-      [3,3,3,3,3,1,0,1,1,3,3,3,3,3,3,3,3,3,3,1,1,0,1,3,3,3,3,3], // 15
-      [3,3,3,3,3,1,0,1,1,3,1,1,1,1,1,1,1,1,3,1,1,0,1,3,3,3,3,3], // 16
-      [1,1,1,1,1,1,0,1,1,3,1,1,1,1,1,1,1,1,3,1,1,0,1,1,1,1,1,1], // 17
-      [1,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,1], // 18
-      [1,0,1,1,1,1,0,1,1,1,1,1,0,1,1,0,1,1,1,1,1,0,1,1,1,1,0,1], // 19
-      [1,0,1,1,1,1,0,1,1,1,1,1,0,1,1,0,1,1,1,1,1,0,1,1,1,1,0,1], // 20
-      [1,2,0,0,1,1,0,0,0,0,0,0,0,3,3,0,0,0,0,0,0,0,1,1,0,0,2,1], // 21 (pac-man spawn row)
-      [1,1,1,0,1,1,0,1,1,0,1,1,1,1,1,1,1,1,0,1,1,0,1,1,0,1,1,1], // 22
-      [1,1,1,0,1,1,0,1,1,0,1,1,1,1,1,1,1,1,0,1,1,0,1,1,0,1,1,1], // 23
-      [1,0,0,0,0,0,0,1,1,0,0,0,0,1,1,0,0,0,0,1,1,0,0,0,0,0,0,1], // 24
-      [1,0,1,1,1,1,1,1,1,1,1,1,0,1,1,0,1,1,1,1,1,1,1,1,1,1,0,1], // 25
-      [1,0,1,1,1,1,1,1,1,1,1,1,0,1,1,0,1,1,1,1,1,1,1,1,1,1,0,1], // 26
-      [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1], // 27
-      [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]  // 28
+      [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+      [1,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,1],
+      [1,0,1,1,1,1,0,1,1,1,1,1,0,1,1,0,1,1,1,1,1,0,1,1,1,1,0,1],
+      [1,2,1,1,1,1,0,1,1,1,1,1,0,1,1,0,1,1,1,1,1,0,1,1,1,1,2,1],
+      [1,0,1,1,1,1,0,1,1,1,1,1,0,1,1,0,1,1,1,1,1,0,1,1,1,1,0,1],
+      [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+      [1,0,1,1,1,1,0,1,1,0,1,1,1,1,1,1,1,1,0,1,1,0,1,1,1,1,0,1],
+      [1,0,1,1,1,1,0,1,1,0,1,1,1,1,1,1,1,1,0,1,1,0,1,1,1,1,0,1],
+      [1,0,0,0,0,0,0,1,1,0,0,0,0,1,1,0,0,0,0,1,1,0,0,0,0,0,0,1],
+      [1,1,1,1,1,1,0,1,1,1,1,1,3,1,1,3,1,1,1,1,1,0,1,1,1,1,1,1],
+      [3,3,3,3,3,1,0,1,1,1,1,1,3,1,1,3,1,1,1,1,1,0,1,3,3,3,3,3],
+      [3,3,3,3,3,1,0,1,1,3,3,3,3,3,3,3,3,3,3,1,1,0,1,3,3,3,3,3],
+      [1,1,1,1,1,1,0,1,1,3,1,1,4,4,4,4,1,1,3,1,1,0,1,1,1,1,1,1],
+      [3,3,3,3,3,3,0,3,3,3,1,4,4,4,4,4,4,1,3,3,3,0,3,3,3,3,3,3],
+      [1,1,1,1,1,1,0,1,1,3,1,1,1,1,1,1,1,1,3,1,1,0,1,1,1,1,1,1],
+      [3,3,3,3,3,1,0,1,1,3,3,3,3,3,3,3,3,3,3,1,1,0,1,3,3,3,3,3],
+      [3,3,3,3,3,1,0,1,1,3,1,1,1,1,1,1,1,1,3,1,1,0,1,3,3,3,3,3],
+      [1,1,1,1,1,1,0,1,1,3,1,1,1,1,1,1,1,1,3,1,1,0,1,1,1,1,1,1],
+      [1,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,1],
+      [1,0,1,1,1,1,0,1,1,1,1,1,0,1,1,0,1,1,1,1,1,0,1,1,1,1,0,1],
+      [1,0,1,1,1,1,0,1,1,1,1,1,0,1,1,0,1,1,1,1,1,0,1,1,1,1,0,1],
+      [1,2,0,0,1,1,0,0,0,0,0,0,0,3,3,0,0,0,0,0,0,0,1,1,0,0,2,1],
+      [1,1,1,0,1,1,0,1,1,0,1,1,1,1,1,1,1,1,0,1,1,0,1,1,0,1,1,1],
+      [1,1,1,0,1,1,0,1,1,0,1,1,1,1,1,1,1,1,0,1,1,0,1,1,0,1,1,1],
+      [1,0,0,0,0,0,0,1,1,0,0,0,0,1,1,0,0,0,0,1,1,0,0,0,0,0,0,1],
+      [1,0,1,1,1,1,1,1,1,1,1,1,0,1,1,0,1,1,1,1,1,1,1,1,1,1,0,1],
+      [1,0,1,1,1,1,1,1,1,1,1,1,0,1,1,0,1,1,1,1,1,1,1,1,1,1,0,1],
+      [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+      [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
     ];
 
-    // Deep copy for the active grid
     let mapLayout = JSON.parse(JSON.stringify(MAP_TEMPLATE));
     const ROWS = mapLayout.length;
     canvas.width = COLS * TILE_SIZE;
@@ -155,91 +165,80 @@ const PacManGame = () => {
     pelletsRemaining = countPellets();
 
     // ============================================
-    // TILE VALIDATION FUNCTIONS
+    // NAV MESH & VALIDATION
     // ============================================
 
     const isWall = (tx, ty) => {
       if (ty < 0 || ty >= ROWS) return true;
-      if (tx < 0 || tx >= COLS) return false; // Tunnel
+      if (tx < 0 || tx >= COLS) return false;
       return mapLayout[ty][tx] === 1;
     };
 
     const canEnter = (tx, ty) => !isWall(tx, ty);
 
-    // Find nearest valid tile using BFS (for spawn recovery)
     const findNearestValidTile = (startX, startY) => {
-        // ... (existing BFS implementation - kept standard)
-        if (canEnter(startX, startY)) return { x: startX, y: startY };
-        const visited = new Set();
-        const queue = [[startX, startY, 0]];
-        while (queue.length > 0) {
-            const [x, y, dist] = queue.shift();
-            const key = `${x},${y}`;
-            if (visited.has(key)) continue;
-            visited.add(key);
-            if (canEnter(x, y)) return { x, y };
-            [[0,-1], [0,1], [-1,0], [1,0]].forEach(([dx, dy]) => {
-                const nx = x + dx;
-                const ny = y + dy;
-                if (ny >= 0 && ny < ROWS && nx >= 0 && nx < COLS) {
-                    queue.push([nx, ny, dist + 1]);
-                }
-            });
-        }
-        return { x: 14, y: 14 };
+      if (canEnter(startX, startY)) return { x: startX, y: startY };
+      const visited = new Set();
+      const queue = [[startX, startY, 0]];
+      while (queue.length > 0) {
+        const [x, y] = queue.shift();
+        const key = `${x},${y}`;
+        if (visited.has(key)) continue;
+        visited.add(key);
+        if (canEnter(x, y)) return { x, y };
+        [[0,-1], [0,1], [-1,0], [1,0]].forEach(([dx, dy]) => {
+          const nx = x + dx; const ny = y + dy;
+          if (ny >= 0 && ny < ROWS && nx >= 0 && nx < COLS) {
+            queue.push([nx, ny, 0]);
+          }
+        });
+      }
+      return { x: 14, y: 21 }; // Default safe spot
     };
 
-    // Validate and correct spawn position
-    const getValidSpawn = (preferredX, preferredY) => {
-      if (canEnter(preferredX, preferredY)) return { x: preferredX, y: preferredY };
-      return findNearestValidTile(preferredX, preferredY);
-    };
+    const getValidSpawn = (preferredX, preferredY) => findNearestValidTile(preferredX, preferredY);
 
     // ============================================
-    // GAME STATE & RESET LOGIC
+    // ENTITIES & RESET
     // ============================================
 
     const pacmanSpawn = getValidSpawn(14, 21);
-    
-    // Mutable Entity State
-    let pacman = { tileX: pacmanSpawn.x, tileY: pacmanSpawn.y, dx: 0, dy: 0, nextDx: 0, nextDy: 0, progress: 0, moveFrames: MOVE_FRAMES, mouth: 0.2, mouthDir: 1 };
-    
-    const ghostSpawns = [
-        getValidSpawn(14, 11), getValidSpawn(13, 13), getValidSpawn(14, 13), getValidSpawn(15, 13)
+    const ghostConfigs = [
+       { x: 14, y: 11, color: '#ef4444', dx: 1, dy: 0 },
+       { x: 13, y: 13, color: '#f472b6', dx: 0, dy: -1 },
+       { x: 14, y: 13, color: '#22d3d3', dx: 0, dy: -1 },
+       { x: 15, y: 13, color: '#fb923c', dx: 0, dy: 1 }
     ];
 
+    let pacman = { ...pacmanSpawn, dx: 0, dy: 0, nextDx: 0, nextDy: 0, progress: 0, moveFrames: MOVE_FRAMES, mouth: 0.2, mouthDir: 1 };
     let ghosts = [];
 
     const resetEntities = () => {
-        pacman = { 
-            tileX: pacmanSpawn.x, tileY: pacmanSpawn.y, 
-            dx: 0, dy: 0, nextDx: 0, nextDy: 0, 
-            progress: 0, moveFrames: MOVE_FRAMES, 
-            mouth: 0.2, mouthDir: 1 
-        };
+        pacman.tileX = pacmanSpawn.x;
+        pacman.tileY = pacmanSpawn.y;
+        pacman.dx = 0; pacman.dy = 0; pacman.nextDx = 0; pacman.nextDy = 0;
+        pacman.progress = 0;
 
-        ghosts = [
-            { tileX: ghostSpawns[0].x, tileY: ghostSpawns[0].y, dx: 1, dy: 0, progress: 0, moveFrames: Math.floor(MOVE_FRAMES * 1.2), color: '#ef4444' },
-            { tileX: ghostSpawns[1].x, tileY: ghostSpawns[1].y, dx: 0, dy: -1, progress: 0, moveFrames: Math.floor(MOVE_FRAMES * 1.3), color: '#f472b6' },
-            { tileX: ghostSpawns[2].x, tileY: ghostSpawns[2].y, dx: 0, dy: -1, progress: 0, moveFrames: Math.floor(MOVE_FRAMES * 1.3), color: '#22d3d3' },
-            { tileX: ghostSpawns[3].x, tileY: ghostSpawns[3].y, dx: 0, dy: 1, progress: 0, moveFrames: Math.floor(MOVE_FRAMES * 1.3), color: '#fb923c' }
-        ];
+        ghosts = ghostConfigs.map(c => {
+             const spawn = getValidSpawn(c.x, c.y);
+             return {
+                 tileX: spawn.x, tileY: spawn.y,
+                 dx: c.dx, dy: c.dy,
+                 progress: 0,
+                 moveFrames: Math.floor(MOVE_FRAMES * 1.2),
+                 color: c.color
+             };
+        });
     };
     
-    // Initial reset
+    // Initialize
     resetEntities();
 
-    // Level Transition
     const advanceLevel = () => {
-        // Reset Map
         mapLayout = JSON.parse(JSON.stringify(MAP_TEMPLATE));
         pelletsRemaining = countPellets();
-        
-        // Reset Entities
         resetEntities();
-        
-        // Increase difficulty (optional: could speed up ghosts here)
-        setLevel(prev => prev + 1);
+        setLevel(p => p + 1);
     };
 
     const handleGameOver = () => {
@@ -248,250 +247,235 @@ const PacManGame = () => {
     };
 
     // ============================================
-    // MOVEMENT LOGIC WITH WALL RECOVERY
+    // UPDATE LOGIC
     // ============================================
 
     const updatePacman = () => {
-      // SAFETY CHECK
-      if (isWall(pacman.tileX, pacman.tileY)) {
-        const safePos = findNearestValidTile(pacman.tileX, pacman.tileY);
-        pacman.tileX = safePos.x; pacman.tileY = safePos.y;
-        pacman.dx = 0; pacman.dy = 0; pacman.progress = 0;
-        return;
-      }
+       // Collision check
+       if (isWall(pacman.tileX, pacman.tileY)) {
+           const safe = findNearestValidTile(pacman.tileX, pacman.tileY);
+           pacman.tileX = safe.x; pacman.tileY = safe.y;
+           return;
+       }
+       
+       if (pacman.progress > 0) {
+           pacman.progress--;
+           return;
+       }
 
-      if (pacman.progress > 0) {
-        pacman.progress--;
-        return;
-      }
+       // Turn logic
+       if (pacman.nextDx || pacman.nextDy) {
+           if (canEnter(pacman.tileX + pacman.nextDx, pacman.tileY + pacman.nextDy)) {
+               pacman.dx = pacman.nextDx; pacman.dy = pacman.nextDy;
+               pacman.nextDx = 0; pacman.nextDy = 0;
+           }
+       }
 
-      // AT TILE CENTER - make discrete decision
-      if (pacman.nextDx !== 0 || pacman.nextDy !== 0) {
-        const nextTileX = pacman.tileX + pacman.nextDx;
-        const nextTileY = pacman.tileY + pacman.nextDy;
-        if (canEnter(nextTileX, nextTileY)) {
-          pacman.dx = pacman.nextDx;
-          pacman.dy = pacman.nextDy;
-          pacman.nextDx = 0;
-          pacman.nextDy = 0;
-        }
-      }
-
-      if (pacman.dx !== 0 || pacman.dy !== 0) {
-        const nextTileX = pacman.tileX + pacman.dx;
-        const nextTileY = pacman.tileY + pacman.dy;
-        if (canEnter(nextTileX, nextTileY)) {
-          pacman.tileX = nextTileX;
-          pacman.tileY = nextTileY;
-          pacman.progress = pacman.moveFrames;
-          if (pacman.tileX < 0) pacman.tileX = COLS - 1;
-          if (pacman.tileX >= COLS) pacman.tileX = 0;
-        } else {
-          pacman.dx = 0;
-          pacman.dy = 0;
-        }
-      }
+       if (pacman.dx || pacman.dy) {
+           if (canEnter(pacman.tileX + pacman.dx, pacman.tileY + pacman.dy)) {
+               pacman.tileX += pacman.dx;
+               pacman.tileY += pacman.dy;
+               pacman.progress = pacman.moveFrames;
+               
+               // Tunnel
+               if (pacman.tileX <= 0) pacman.tileX = COLS - 1;
+               else if (pacman.tileX >= COLS - 1) pacman.tileX = 0;
+           } else {
+               pacman.dx = 0; pacman.dy = 0;
+           }
+       }
     };
 
     const updateGhost = (ghost) => {
-      // SAFETY CHECK
-      if (isWall(ghost.tileX, ghost.tileY)) {
-        const safePos = findNearestValidTile(ghost.tileX, ghost.tileY);
-        ghost.tileX = safePos.x; ghost.tileY = safePos.y;
-        ghost.dx = 0; ghost.dy = 0; ghost.progress = 0;
-        return;
-      }
+       if (ghost.progress > 0) {
+           ghost.progress--;
+           return;
+       }
+       
+       const options = [];
+       // Simple AI: Don't reverse immediately unless stuck
+       [[0,-1],[0,1],[-1,0],[1,0]].forEach(([dx, dy]) => {
+           if (dx === -ghost.dx && dy === -ghost.dy) return; // inverse
+           if (canEnter(ghost.tileX + dx, ghost.tileY + dy)) options.push({dx, dy});
+       });
 
-      if (ghost.progress > 0) {
-        ghost.progress--;
-        return;
-      }
+       if (options.length === 0) {
+           ghost.dx = -ghost.dx; ghost.dy = -ghost.dy; // Reverse
+       } else {
+           // Go straight preference
+           const straight = options.find(o => o.dx === ghost.dx && o.dy === ghost.dy);
+           if (straight && Math.random() > 0.25) {
+               // keep going
+           } else {
+               const choice = options[Math.floor(Math.random() * options.length)];
+               ghost.dx = choice.dx; ghost.dy = choice.dy;
+           }
+       }
 
-      const reverse = { dx: -ghost.dx, dy: -ghost.dy };
-      const options = [];
-
-      [[0, -1], [0, 1], [-1, 0], [1, 0]].forEach(([dx, dy]) => {
-        if (dx === reverse.dx && dy === reverse.dy) return;
-        if (canEnter(ghost.tileX + dx, ghost.tileY + dy)) {
-          options.push({ dx, dy });
-        }
-      });
-
-      if (options.length > 0) {
-        const straight = options.find(o => o.dx === ghost.dx && o.dy === ghost.dy);
-        if (straight && Math.random() > 0.3) {
-          // Continue straight
-        } else {
-          const choice = options[Math.floor(Math.random() * options.length)];
-          ghost.dx = choice.dx;
-          ghost.dy = choice.dy;
-        }
-      } else {
-        ghost.dx = reverse.dx;
-        ghost.dy = reverse.dy;
-      }
-
-      const nextX = ghost.tileX + ghost.dx;
-      const nextY = ghost.tileY + ghost.dy;
-      if (canEnter(nextX, nextY)) {
-        ghost.tileX = nextX;
-        ghost.tileY = nextY;
-        ghost.progress = ghost.moveFrames;
-
-        if (ghost.tileX < 0) ghost.tileX = COLS - 1;
-        if (ghost.tileX >= COLS) ghost.tileX = 0;
-      }
+       if (canEnter(ghost.tileX + ghost.dx, ghost.tileY + ghost.dy)) {
+           ghost.tileX += ghost.dx;
+           ghost.tileY += ghost.dy;
+           ghost.progress = ghost.moveFrames;
+           if (ghost.tileX <= 0) ghost.tileX = COLS - 1;
+           else if (ghost.tileX >= COLS - 1) ghost.tileX = 0;
+       }
     };
-
-    // ============================================
-    // RENDERING & LOOP
-    // ============================================
 
     const getRenderPos = (char) => {
-      const t = 1 - (char.progress / char.moveFrames);
-      const prevTileX = char.tileX - char.dx;
-      const prevTileY = char.tileY - char.dy;
+       const t = 1 - (char.progress / char.moveFrames);
+       const prevX = (char.tileX - char.dx) * TILE_SIZE + TILE_SIZE/2;
+       const prevY = (char.tileY - char.dy) * TILE_SIZE + TILE_SIZE/2;
+       const currX = char.tileX * TILE_SIZE + TILE_SIZE/2;
+       const currY = char.tileY * TILE_SIZE + TILE_SIZE/2;
+       
+       // Handle tunnel wrap interpolation
+       if (Math.abs(currX - prevX) > TILE_SIZE * 2) return { x: currX, y: currY };
 
-      const fromX = prevTileX * TILE_SIZE + TILE_SIZE / 2;
-      const fromY = prevTileY * TILE_SIZE + TILE_SIZE / 2;
-      const toX = char.tileX * TILE_SIZE + TILE_SIZE / 2;
-      const toY = char.tileY * TILE_SIZE + TILE_SIZE / 2;
-
-      let x = fromX + (toX - fromX) * t;
-      let y = fromY + (toY - fromY) * t;
-
-      if (Math.abs(toX - fromX) > TILE_SIZE * 2) x = toX; // Tunnel fix
-      return { x, y };
+       return {
+           x: prevX + (currX - prevX) * t,
+           y: prevY + (currY - prevY) * t
+       };
     };
 
-    const update = () => {
-      updatePacman();
-      ghosts.forEach(updateGhost);
+    const render = () => {
+        // Clear
+        ctx.fillStyle = 'black';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      // 1. Ghost Collision (Simple Grid Based)
-      // Check if grid coordinates match. For smoother "touch" detection, we could check render distances, 
-      // but purely grid-based means matching tileX/tileY.
-      for (const ghost of ghosts) {
-          if (ghost.tileX === pacman.tileX && ghost.tileY === pacman.tileY) {
-              handleGameOver();
-              return; // Stop loop
-          }
-      }
-
-      // 2. Eat dots
-      // Check current tile
-      const currentTileVal = mapLayout[pacman.tileY]?.[pacman.tileX];
-      if (currentTileVal === 0) { // Small dot
-        mapLayout[pacman.tileY][pacman.tileX] = 3; // Empty
-        gameStateScore += 10;
-        setScore(gameStateScore);
-        pelletsRemaining--;
-      } else if (currentTileVal === 2) { // Power pellet
-        mapLayout[pacman.tileY][pacman.tileX] = 3; // Empty
-        gameStateScore += 50;
-        setScore(gameStateScore);
-        pelletsRemaining--;
-        // Power mode logic would go here
-      }
-
-      // 3. Level Completion
-      if (pelletsRemaining <= 0) {
-          advanceLevel();
-          // Small pause to let user realize level changed? 
-          // For now, instant transition as requested "progress to a new maze" behavior
-      }
-
-      // Draw
-      ctx.fillStyle = 'black';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-      for (let r = 0; r < ROWS; r++) {
-        for (let c = 0; c < COLS; c++) {
-          const t = mapLayout[r][c];
-          const x = c * TILE_SIZE;
-          const y = r * TILE_SIZE;
-
-          if (t === 1) {
-            ctx.fillStyle = '#1e3a8a';
-            ctx.fillRect(x + 1, y + 1, TILE_SIZE - 2, TILE_SIZE - 2);
-            ctx.strokeStyle = '#3b82f6';
-            ctx.lineWidth = 1;
-            ctx.strokeRect(x + 2, y + 2, TILE_SIZE - 4, TILE_SIZE - 4);
-          } else if (t === 0) {
-            ctx.fillStyle = '#fca5a5';
-            ctx.beginPath();
-            ctx.arc(x + TILE_SIZE / 2, y + TILE_SIZE / 2, 2, 0, Math.PI * 2);
-            ctx.fill();
-          } else if (t === 2) {
-            ctx.fillStyle = '#fca5a5';
-            ctx.beginPath();
-            ctx.arc(x + TILE_SIZE / 2, y + TILE_SIZE / 2, 4, 0, Math.PI * 2);
-            ctx.fill();
-          }
+        // Map
+        for(let r=0; r<ROWS; r++){
+            for(let c=0; c<COLS; c++){
+                const t = mapLayout[r][c];
+                const x = c * TILE_SIZE;
+                const y = r * TILE_SIZE;
+                if (t === 1) {
+                    ctx.fillStyle = '#1e3a8a';
+                    ctx.fillRect(x+1, y+1, TILE_SIZE-2, TILE_SIZE-2);
+                    ctx.strokeStyle = '#3b82f6';
+                    ctx.lineWidth = 1;
+                    ctx.strokeRect(x+4, y+4, TILE_SIZE-8, TILE_SIZE-8);
+                } else if (t === 0) {
+                    ctx.fillStyle = '#fca5a5';
+                    ctx.beginPath();
+                    ctx.arc(x+TILE_SIZE/2, y+TILE_SIZE/2, 3, 0, Math.PI*2);
+                    ctx.fill();
+                } else if (t === 2) {
+                    ctx.fillStyle = '#fca5a5';
+                    ctx.beginPath();
+                    ctx.arc(x+TILE_SIZE/2, y+TILE_SIZE/2, 8, 0, Math.PI*2);
+                    ctx.fill();
+                }
+            }
         }
-      }
 
-      // Draw Pac-Man
-      const pacPos = getRenderPos(pacman);
-      ctx.save();
-      ctx.translate(pacPos.x, pacPos.y);
-
-      let angle = 0;
-      if (pacman.dx === 1) angle = 0;
-      else if (pacman.dx === -1) angle = Math.PI;
-      else if (pacman.dy === 1) angle = Math.PI / 2;
-      else if (pacman.dy === -1) angle = -Math.PI / 2;
-      ctx.rotate(angle);
-
-      pacman.mouth += 0.05 * pacman.mouthDir;
-      if (pacman.mouth >= 0.35) pacman.mouthDir = -1;
-      if (pacman.mouth <= 0.05) pacman.mouthDir = 1;
-
-      ctx.fillStyle = 'yellow';
-      ctx.beginPath();
-      ctx.arc(0, 0, TILE_SIZE * 0.4, pacman.mouth * Math.PI, (2 - pacman.mouth) * Math.PI);
-      ctx.lineTo(0, 0);
-      ctx.fill();
-      ctx.restore();
-
-      // Draw Ghosts
-      ghosts.forEach(g => {
-        const pos = getRenderPos(g);
-        const size = TILE_SIZE * 0.4;
-
-        ctx.fillStyle = g.color;
+        // Pacman
+        const pPos = getRenderPos(pacman);
+        ctx.save();
+        ctx.translate(pPos.x, pPos.y);
+        let angle = 0;
+        if(pacman.dx === -1) angle = Math.PI;
+        else if(pacman.dy === -1) angle = -Math.PI/2;
+        else if(pacman.dy === 1) angle = Math.PI/2;
+        ctx.rotate(angle);
+        
+        pacman.mouth += 0.05 * pacman.mouthDir;
+        if(pacman.mouth > 0.35) pacman.mouthDir = -1;
+        if(pacman.mouth < 0.05) pacman.mouthDir = 1;
+        
+        ctx.fillStyle = 'yellow';
         ctx.beginPath();
-        ctx.arc(pos.x, pos.y, size, Math.PI, 0);
-        ctx.lineTo(pos.x + size, pos.y + size * 0.8);
-        ctx.lineTo(pos.x - size, pos.y + size * 0.8);
-        ctx.closePath();
+        ctx.arc(0, 0, TILE_SIZE*0.4, pacman.mouth*Math.PI, (2-pacman.mouth)*Math.PI);
+        ctx.lineTo(0,0);
         ctx.fill();
+        ctx.restore();
 
-        ctx.fillStyle = 'white';
-        ctx.beginPath();
-        ctx.arc(pos.x - 3, pos.y - 1, 2.5, 0, Math.PI * 2);
-        ctx.arc(pos.x + 3, pos.y - 1, 2.5, 0, Math.PI * 2);
-        ctx.fill();
-
-        ctx.fillStyle = '#1e3a8a';
-        ctx.beginPath();
-        ctx.arc(pos.x - 3 + g.dx * 1, pos.y - 1 + g.dy * 1, 1.2, 0, Math.PI * 2);
-        ctx.arc(pos.x + 3 + g.dx * 1, pos.y - 1 + g.dy * 1, 1.2, 0, Math.PI * 2);
-        ctx.fill();
-      });
-
-      animationFrameId = requestAnimationFrame(update);
+        // Ghosts
+        ghosts.forEach(g => {
+            const gPos = getRenderPos(g);
+            ctx.fillStyle = g.color;
+            ctx.beginPath();
+            ctx.arc(gPos.x, gPos.y, TILE_SIZE*0.4, Math.PI, 0);
+            ctx.lineTo(gPos.x + TILE_SIZE*0.4, gPos.y + TILE_SIZE*0.4);
+            ctx.lineTo(gPos.x - TILE_SIZE*0.4, gPos.y + TILE_SIZE*0.4);
+            ctx.fill();
+            
+            // Eyes
+            ctx.fillStyle = 'white';
+            ctx.beginPath();
+            ctx.arc(gPos.x - 6, gPos.y - 4, 4, 0, Math.PI*2);
+            ctx.arc(gPos.x + 6, gPos.y - 4, 4, 0, Math.PI*2);
+            ctx.fill();
+            ctx.fillStyle = 'blue';
+            ctx.beginPath();
+            ctx.arc(gPos.x - 6 + g.dx*2, gPos.y - 4 + g.dy*2, 2, 0, Math.PI*2);
+            ctx.arc(gPos.x + 6 + g.dx*2, gPos.y - 4 + g.dy*2, 2, 0, Math.PI*2);
+            ctx.fill();
+        });
     };
 
-    update();
+    const loop = () => {
+        try {
+            updatePacman();
+            ghosts.forEach(updateGhost);
+            
+            // Collision
+            for(const g of ghosts) {
+                // Approximate collision
+                const dx = Math.abs(g.tileX - pacman.tileX);
+                const dy = Math.abs(g.tileY - pacman.tileY);
+                if (dx < 1 && dy < 1) {
+                    if (gameLives > 1) {
+                        gameLives--;
+                        setLives(gameLives);
+                        resetEntities();
+                        // Just return, handled in next frame
+                    } else {
+                        handleGameOver();
+                        return; 
+                    }
+                }
+            }
+
+            // Eating
+            const t = mapLayout[pacman.tileY]?.[pacman.tileX];
+            if (t === 0 || t === 2) {
+                const val = (t===2) ? 50 : 10;
+                mapLayout[pacman.tileY][pacman.tileX] = 3;
+                gameStateScore += val;
+                setScore(gameStateScore);
+                pelletsRemaining--;
+                if (pelletsRemaining <= 0) advanceLevel();
+            }
+
+            render();
+            animationFrameId = requestAnimationFrame(loop);
+            
+        } catch (err) {
+            console.error(err);
+        }
+    };
+
+    // Input
+    const handleKey = (e) => {
+        if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key)) {
+            e.preventDefault();
+            if(e.key === 'ArrowUp') { pacman.nextDx=0; pacman.nextDy=-1; }
+            if(e.key === 'ArrowDown') { pacman.nextDx=0; pacman.nextDy=1; }
+            if(e.key === 'ArrowLeft') { pacman.nextDx=-1; pacman.nextDy=0; }
+            if(e.key === 'ArrowRight') { pacman.nextDx=1; pacman.nextDy=0; }
+        }
+    };
+    
+    window.addEventListener('keydown', handleKey);
+    loop();
 
     return () => {
-      if (container) container.removeEventListener('keydown', handleKeyDown);
-      cancelAnimationFrame(animationFrameId);
+        window.removeEventListener('keydown', handleKey);
+        cancelAnimationFrame(animationFrameId);
     };
   }, [gameStarted]);
 
-  // Ghost preview for intro
+  // Intro Screen
   const GhostPreview = ({ color, name }) => (
     <div className="text-center">
       <svg width="40" height="44" viewBox="0 0 40 44" className="mx-auto mb-2">
@@ -505,7 +489,6 @@ const PacManGame = () => {
     </div>
   );
 
-  // Intro Screen
   if (!gameStarted) {
     return (
       <div className="flex flex-col items-center justify-center mb-6 w-full">
@@ -549,10 +532,6 @@ const PacManGame = () => {
               {musicEnabled ? <Volume2 className="w-5 h-5 text-white" /> : <VolumeX className="w-5 h-5 text-white" />}
             </button>
           </div>
-
-          <div className="absolute bottom-4 left-4 text-slate-500 text-xs">
-            Arrow Keys to Move
-          </div>
         </div>
       </div>
     );
@@ -569,7 +548,6 @@ const PacManGame = () => {
         <div className="absolute top-2 right-2 text-white/50 font-bold text-xs pointer-events-none font-mono">
             HIGH SCORE <span className="text-white">{highScore.toString().padStart(6, '0')}</span>
         </div>
-        {/* Game Over / Level Up Flash Overlay could go here */}
       </div>
       <div className="text-slate-400 text-xs mt-2 font-mono">
         Click here, then use Arrow Keys
