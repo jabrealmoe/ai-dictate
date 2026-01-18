@@ -19,33 +19,54 @@ const PacManGame = () => {
       const ctx = new AudioContext();
       audioContextRef.current = ctx;
       const now = ctx.currentTime;
+      
+      // Ms. Pac-Man Intro Melody (approx)
       const melody = [
-        { freq: 523.25, start: 0, duration: 0.15 },
-        { freq: 659.25, start: 0.15, duration: 0.15 },
-        { freq: 783.99, start: 0.3, duration: 0.15 },
-        { freq: 1046.50, start: 0.45, duration: 0.3 },
-        { freq: 783.99, start: 0.8, duration: 0.15 },
-        { freq: 659.25, start: 0.95, duration: 0.15 },
-        { freq: 523.25, start: 1.1, duration: 0.15 },
-        { freq: 392.00, start: 1.3, duration: 0.15 },
-        { freq: 440.00, start: 1.45, duration: 0.15 },
-        { freq: 493.88, start: 1.6, duration: 0.15 },
-        { freq: 523.25, start: 1.75, duration: 0.4 },
-        { freq: 659.25, start: 2.2, duration: 0.15 },
-        { freq: 783.99, start: 2.35, duration: 0.15 },
-        { freq: 1046.50, start: 2.5, duration: 0.5 },
+        // Measure 1
+        { freq: 493.88, start: 0.0, duration: 0.1 }, // B4
+        { freq: 987.77, start: 0.1, duration: 0.1 }, // B5
+        { freq: 739.99, start: 0.2, duration: 0.1 }, // F#5
+        { freq: 622.25, start: 0.3, duration: 0.1 }, // D#5
+        { freq: 987.77, start: 0.4, duration: 0.1 }, // B5
+        { freq: 739.99, start: 0.5, duration: 0.1 }, // F#5
+        { freq: 622.25, start: 0.6, duration: 0.25 }, // D#5
+
+        // Measure 2 (Key Change)
+        { freq: 523.25, start: 0.9, duration: 0.1 }, // C5
+        { freq: 1046.50, start: 1.0, duration: 0.1 }, // C6
+        { freq: 783.99, start: 1.1, duration: 0.1 }, // G5
+        { freq: 659.25, start: 1.2, duration: 0.1 }, // E5
+        { freq: 1046.50, start: 1.3, duration: 0.1 }, // C6
+        { freq: 783.99, start: 1.4, duration: 0.1 }, // G5
+        { freq: 659.25, start: 1.5, duration: 0.25 }, // E5
+
+        // Measure 3
+        { freq: 493.88, start: 1.8, duration: 0.1 }, // B4
+        { freq: 987.77, start: 1.9, duration: 0.1 }, // B5
+        { freq: 739.99, start: 2.0, duration: 0.1 }, // F#5
+        { freq: 622.25, start: 2.1, duration: 0.1 }, // D#5
+        { freq: 987.77, start: 2.2, duration: 0.1 }, // B5
+        { freq: 739.99, start: 2.3, duration: 0.1 }, // F#5
+        { freq: 622.25, start: 2.4, duration: 0.25 }, // D#5
+        
+        // Measure 4 (Ending)
+        { freq: 622.25, start: 2.7, duration: 0.08 }, // D#5
+        { freq: 659.25, start: 2.78, duration: 0.08 }, // E5
+        { freq: 698.46, start: 2.86, duration: 0.08 }, // F5
+        { freq: 698.46, start: 2.94, duration: 0.4 }, // F5 (hold)
       ];
+
       melody.forEach(note => {
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
         osc.frequency.value = note.freq;
-        osc.type = 'square';
+        osc.type = 'triangle'; // Smoother tone
         osc.connect(gain);
         gain.connect(ctx.destination);
         const startTime = now + note.start;
         osc.start(startTime);
         gain.gain.setValueAtTime(0, startTime);
-        gain.gain.linearRampToValueAtTime(0.08, startTime + 0.02);
+        gain.gain.linearRampToValueAtTime(0.1, startTime + 0.02);
         gain.gain.exponentialRampToValueAtTime(0.001, startTime + note.duration);
         osc.stop(startTime + note.duration);
       });
@@ -60,7 +81,7 @@ const PacManGame = () => {
         setScore(0);
         setLevel(1);
         setGameStarted(true);
-    }, 3200);
+    }, 3800); // Extended wait for Ms Pacman intro
   };
 
   useEffect(() => {
@@ -73,7 +94,7 @@ const PacManGame = () => {
     // ============================================
     // CONFIGURATION
     // ============================================
-    const TILE_SIZE = 16;
+    const TILE_SIZE = 32; // Doubled size for wider screen
     const COLS = 28;
     const MOVE_FRAMES = 8;
     let gameStateScore = 0; // Local sync for speed
@@ -487,7 +508,7 @@ const PacManGame = () => {
     return (
       <div className="flex flex-col items-center justify-center mb-6 w-full">
         <div className="relative rounded-xl overflow-hidden shadow-2xl border-4 border-slate-700 bg-black p-8"
-             style={{ width: '600px', height: '480px' }}>
+             style={{ width: '100%', maxWidth: '896px', height: '600px' }}>
           <div className="text-center mb-8">
             <h1 className="text-4xl font-bold text-yellow-400 mb-2"
                 style={{ fontFamily: 'monospace', textShadow: '3px 3px 0 #0369a1' }}>
