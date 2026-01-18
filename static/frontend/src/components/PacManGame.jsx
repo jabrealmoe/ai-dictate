@@ -8,19 +8,14 @@ const PacManGame = () => {
   const [musicEnabled, setMusicEnabled] = useState(true);
   const audioContextRef = useRef(null);
 
-  // Play intro music
   const playIntroMusic = () => {
     if (!musicEnabled) return;
-    
     try {
       const AudioContext = window.AudioContext || window.webkitAudioContext;
       if (!AudioContext) return;
-      
       const ctx = new AudioContext();
       audioContextRef.current = ctx;
       const now = ctx.currentTime;
-
-      // Classic Pac-Man intro melody (simplified)
       const melody = [
         { freq: 523.25, start: 0, duration: 0.15 },
         { freq: 659.25, start: 0.15, duration: 0.15 },
@@ -37,24 +32,18 @@ const PacManGame = () => {
         { freq: 783.99, start: 2.35, duration: 0.15 },
         { freq: 1046.50, start: 2.5, duration: 0.5 },
       ];
-
       melody.forEach(note => {
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
-        
         osc.frequency.value = note.freq;
         osc.type = 'square';
-        
         osc.connect(gain);
         gain.connect(ctx.destination);
-        
         const startTime = now + note.start;
         osc.start(startTime);
-        
         gain.gain.setValueAtTime(0, startTime);
         gain.gain.linearRampToValueAtTime(0.08, startTime + 0.02);
         gain.gain.exponentialRampToValueAtTime(0.001, startTime + note.duration);
-        
         osc.stop(startTime + note.duration);
       });
     } catch (e) {
@@ -64,12 +53,9 @@ const PacManGame = () => {
 
   const handleStartGame = () => {
     playIntroMusic();
-    setTimeout(() => {
-      setGameStarted(true);
-    }, 3200);
+    setTimeout(() => setGameStarted(true), 3200);
   };
 
-  // Focus container when game starts for keyboard input
   useEffect(() => {
     if (gameStarted && containerRef.current) {
       containerRef.current.focus();
@@ -78,294 +64,356 @@ const PacManGame = () => {
 
   useEffect(() => {
     if (!gameStarted) return;
-    
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     let animationFrameId;
 
-    // --- Configuration ---
-    const TILE_SIZE = 20; // Smaller tiles for better control
+    // ============================================
+    // CONFIGURATION - Classic Pac-Man Style
+    // ============================================
+    const TILE_SIZE = 16;  // Pixels per tile (must be divisible by SPEED)
+    const SPEED = 2;       // Pixels per frame (TILE_SIZE % SPEED must === 0)
     const COLS = 28;
-    const SPEED = 2; // Must evenly divide TILE_SIZE
 
-    // 1 = Wall, 0 = Dot, 2 = Power Pellet, 3 = Empty, 4 = Ghost House
+    // Map: 1=Wall, 0=Dot, 2=PowerPellet, 3=Empty, 4=GhostHouse
     const mapLayout = [
-        [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
-        [1,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,1],
-        [1,0,1,1,1,1,0,1,1,1,1,1,0,1,1,0,1,1,1,1,1,0,1,1,1,1,0,1],
-        [1,2,1,1,1,1,0,1,1,1,1,1,0,1,1,0,1,1,1,1,1,0,1,1,1,1,2,1],
-        [1,0,1,1,1,1,0,1,1,1,1,1,0,1,1,0,1,1,1,1,1,0,1,1,1,1,0,1],
-        [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-        [1,0,1,1,1,1,0,1,1,0,1,1,1,1,1,1,1,1,0,1,1,0,1,1,1,1,0,1],
-        [1,0,1,1,1,1,0,1,1,0,1,1,1,1,1,1,1,1,0,1,1,0,1,1,1,1,0,1],
-        [1,0,0,0,0,0,0,1,1,0,0,0,0,1,1,0,0,0,0,1,1,0,0,0,0,0,0,1],
-        [1,1,1,1,1,1,0,1,1,1,1,1,3,1,1,3,1,1,1,1,1,0,1,1,1,1,1,1],
-        [3,3,3,3,3,1,0,1,1,1,1,1,3,1,1,3,1,1,1,1,1,0,1,3,3,3,3,3],
-        [3,3,3,3,3,1,0,1,1,3,3,3,3,3,3,3,3,3,3,1,1,0,1,3,3,3,3,3],
-        [1,1,1,1,1,1,0,1,1,3,1,1,4,4,4,4,1,1,3,1,1,0,1,1,1,1,1,1],
-        [3,3,3,3,3,3,0,3,3,3,1,4,4,4,4,4,4,1,3,3,3,0,3,3,3,3,3,3],
-        [1,1,1,1,1,1,0,1,1,3,1,1,1,1,1,1,1,1,3,1,1,0,1,1,1,1,1,1],
-        [3,3,3,3,3,1,0,1,1,3,3,3,3,3,3,3,3,3,3,1,1,0,1,3,3,3,3,3],
-        [3,3,3,3,3,1,0,1,1,3,1,1,1,1,1,1,1,1,3,1,1,0,1,3,3,3,3,3],
-        [1,1,1,1,1,1,0,1,1,3,1,1,1,1,1,1,1,1,3,1,1,0,1,1,1,1,1,1],
-        [1,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,1],
-        [1,0,1,1,1,1,0,1,1,1,1,1,0,1,1,0,1,1,1,1,1,0,1,1,1,1,0,1],
-        [1,0,1,1,1,1,0,1,1,1,1,1,0,1,1,0,1,1,1,1,1,0,1,1,1,1,0,1],
-        [1,2,0,0,1,1,0,0,0,0,0,0,0,3,3,0,0,0,0,0,0,0,1,1,0,0,2,1],
-        [1,1,1,0,1,1,0,1,1,0,1,1,1,1,1,1,1,1,0,1,1,0,1,1,0,1,1,1],
-        [1,1,1,0,1,1,0,1,1,0,1,1,1,1,1,1,1,1,0,1,1,0,1,1,0,1,1,1],
-        [1,0,0,0,0,0,0,1,1,0,0,0,0,1,1,0,0,0,0,1,1,0,0,0,0,0,0,1],
-        [1,0,1,1,1,1,1,1,1,1,1,1,0,1,1,0,1,1,1,1,1,1,1,1,1,1,0,1],
-        [1,0,1,1,1,1,1,1,1,1,1,1,0,1,1,0,1,1,1,1,1,1,1,1,1,1,0,1],
-        [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-        [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
+      [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+      [1,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,1],
+      [1,0,1,1,1,1,0,1,1,1,1,1,0,1,1,0,1,1,1,1,1,0,1,1,1,1,0,1],
+      [1,2,1,1,1,1,0,1,1,1,1,1,0,1,1,0,1,1,1,1,1,0,1,1,1,1,2,1],
+      [1,0,1,1,1,1,0,1,1,1,1,1,0,1,1,0,1,1,1,1,1,0,1,1,1,1,0,1],
+      [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+      [1,0,1,1,1,1,0,1,1,0,1,1,1,1,1,1,1,1,0,1,1,0,1,1,1,1,0,1],
+      [1,0,1,1,1,1,0,1,1,0,1,1,1,1,1,1,1,1,0,1,1,0,1,1,1,1,0,1],
+      [1,0,0,0,0,0,0,1,1,0,0,0,0,1,1,0,0,0,0,1,1,0,0,0,0,0,0,1],
+      [1,1,1,1,1,1,0,1,1,1,1,1,3,1,1,3,1,1,1,1,1,0,1,1,1,1,1,1],
+      [3,3,3,3,3,1,0,1,1,1,1,1,3,1,1,3,1,1,1,1,1,0,1,3,3,3,3,3],
+      [3,3,3,3,3,1,0,1,1,3,3,3,3,3,3,3,3,3,3,1,1,0,1,3,3,3,3,3],
+      [1,1,1,1,1,1,0,1,1,3,1,1,4,4,4,4,1,1,3,1,1,0,1,1,1,1,1,1],
+      [3,3,3,3,3,3,0,3,3,3,1,4,4,4,4,4,4,1,3,3,3,0,3,3,3,3,3,3],
+      [1,1,1,1,1,1,0,1,1,3,1,1,1,1,1,1,1,1,3,1,1,0,1,1,1,1,1,1],
+      [3,3,3,3,3,1,0,1,1,3,3,3,3,3,3,3,3,3,3,1,1,0,1,3,3,3,3,3],
+      [3,3,3,3,3,1,0,1,1,3,1,1,1,1,1,1,1,1,3,1,1,0,1,3,3,3,3,3],
+      [1,1,1,1,1,1,0,1,1,3,1,1,1,1,1,1,1,1,3,1,1,0,1,1,1,1,1,1],
+      [1,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,1],
+      [1,0,1,1,1,1,0,1,1,1,1,1,0,1,1,0,1,1,1,1,1,0,1,1,1,1,0,1],
+      [1,0,1,1,1,1,0,1,1,1,1,1,0,1,1,0,1,1,1,1,1,0,1,1,1,1,0,1],
+      [1,2,0,0,1,1,0,0,0,0,0,0,0,3,3,0,0,0,0,0,0,0,1,1,0,0,2,1],
+      [1,1,1,0,1,1,0,1,1,0,1,1,1,1,1,1,1,1,0,1,1,0,1,1,0,1,1,1],
+      [1,1,1,0,1,1,0,1,1,0,1,1,1,1,1,1,1,1,0,1,1,0,1,1,0,1,1,1],
+      [1,0,0,0,0,0,0,1,1,0,0,0,0,1,1,0,0,0,0,1,1,0,0,0,0,0,0,1],
+      [1,0,1,1,1,1,1,1,1,1,1,1,0,1,1,0,1,1,1,1,1,1,1,1,1,1,0,1],
+      [1,0,1,1,1,1,1,1,1,1,1,1,0,1,1,0,1,1,1,1,1,1,1,1,1,1,0,1],
+      [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+      [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
     ];
-    
-    const ACTIVE_ROWS = mapLayout.length;
-    canvas.width = COLS * TILE_SIZE;
-    canvas.height = ACTIVE_ROWS * TILE_SIZE;
 
-    // --- Game State ---
-    let pacman = {
-        x: 14 * TILE_SIZE + TILE_SIZE / 2,
-        y: 23 * TILE_SIZE + TILE_SIZE / 2, 
-        dir: { x: 0, y: 0 },
-        nextDir: { x: 0, y: 0 },
-        radius: TILE_SIZE * 0.4,
-        mouth: 0.2,
-        mouthOp: 1
+    const ROWS = mapLayout.length;
+    canvas.width = COLS * TILE_SIZE;
+    canvas.height = ROWS * TILE_SIZE;
+
+    // ============================================
+    // HELPER FUNCTIONS
+    // ============================================
+    
+    // Check if a tile is a wall
+    const isWall = (tileX, tileY) => {
+      // Handle tunnel (out of bounds horizontally is NOT a wall)
+      if (tileY < 0 || tileY >= ROWS) return true;
+      if (tileX < 0 || tileX >= COLS) return false;
+      return mapLayout[tileY][tileX] === 1;
+    };
+
+    // Convert pixel position to tile position
+    // Uses Math.round for center-based calculation
+    const pixelToTile = (px, py) => ({
+      x: Math.floor(px / TILE_SIZE),
+      y: Math.floor(py / TILE_SIZE)
+    });
+
+    // Get pixel center of a tile
+    const tileCenterPx = (tx, ty) => ({
+      x: tx * TILE_SIZE + TILE_SIZE / 2,
+      y: ty * TILE_SIZE + TILE_SIZE / 2
+    });
+
+    // Check if character is exactly at tile center
+    const isAtTileCenter = (char) => {
+      const tile = pixelToTile(char.px, char.py);
+      const center = tileCenterPx(tile.x, tile.y);
+      return char.px === center.x && char.py === center.y;
+    };
+
+    // Snap character to nearest tile center
+    const snapToTileCenter = (char) => {
+      const tile = pixelToTile(char.px, char.py);
+      const center = tileCenterPx(tile.x, tile.y);
+      char.px = center.x;
+      char.py = center.y;
+    };
+
+    // Check if can move in direction from current tile
+    const canMoveInDir = (tileX, tileY, dx, dy) => {
+      return !isWall(tileX + dx, tileY + dy);
+    };
+
+    // ============================================
+    // GAME STATE - Grid-locked positions
+    // ============================================
+    
+    // Characters store their position as PIXEL coordinates
+    // but are always aligned to tile centers
+    const pacman = {
+      px: 14 * TILE_SIZE + TILE_SIZE / 2,  // Pixel X (centered on tile 14)
+      py: 23 * TILE_SIZE + TILE_SIZE / 2,  // Pixel Y (centered on tile 23)
+      dx: 0,   // Current direction X (-1, 0, 1)
+      dy: 0,   // Current direction Y (-1, 0, 1)
+      nextDx: 0,  // Buffered next direction
+      nextDy: 0,
+      speed: SPEED,
+      mouth: 0.2,
+      mouthDir: 1
     };
 
     const ghosts = [
-        { x: 13.5 * TILE_SIZE + TILE_SIZE / 2, y: 11 * TILE_SIZE + TILE_SIZE / 2, color: 'red', dir: { x: 1, y: 0 }, speed: SPEED * 0.8 },
-        { x: 13.5 * TILE_SIZE + TILE_SIZE / 2, y: 13 * TILE_SIZE + TILE_SIZE / 2, color: 'pink', dir: { x: 0, y: -1 }, speed: SPEED * 0.7 },
-        { x: 12.5 * TILE_SIZE + TILE_SIZE / 2, y: 13 * TILE_SIZE + TILE_SIZE / 2, color: 'cyan', dir: { x: 0, y: -1 }, speed: SPEED * 0.7 },
-        { x: 14.5 * TILE_SIZE + TILE_SIZE / 2, y: 13 * TILE_SIZE + TILE_SIZE / 2, color: 'orange', dir: { x: 0, y: -1 }, speed: SPEED * 0.7 }
+      { px: 14 * TILE_SIZE + TILE_SIZE / 2, py: 11 * TILE_SIZE + TILE_SIZE / 2, dx: 1, dy: 0, speed: SPEED * 0.85, color: '#ef4444' },
+      { px: 13 * TILE_SIZE + TILE_SIZE / 2, py: 13 * TILE_SIZE + TILE_SIZE / 2, dx: 0, dy: -1, speed: SPEED * 0.8, color: '#f472b6' },
+      { px: 14 * TILE_SIZE + TILE_SIZE / 2, py: 13 * TILE_SIZE + TILE_SIZE / 2, dx: 0, dy: -1, speed: SPEED * 0.8, color: '#22d3d3' },
+      { px: 15 * TILE_SIZE + TILE_SIZE / 2, py: 13 * TILE_SIZE + TILE_SIZE / 2, dx: 0, dy: 1, speed: SPEED * 0.8, color: '#fb923c' }
     ];
 
+    // ============================================
+    // INPUT HANDLING
+    // ============================================
     const handleKeyDown = (e) => {
-        if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
-            e.preventDefault();
-        }
-        if (e.key === 'ArrowUp') pacman.nextDir = { x: 0, y: -1 };
-        if (e.key === 'ArrowDown') pacman.nextDir = { x: 0, y: 1 };
-        if (e.key === 'ArrowLeft') pacman.nextDir = { x: -1, y: 0 };
-        if (e.key === 'ArrowRight') pacman.nextDir = { x: 1, y: 0 };
+      e.preventDefault();
+      switch(e.key) {
+        case 'ArrowUp':    pacman.nextDx = 0;  pacman.nextDy = -1; break;
+        case 'ArrowDown':  pacman.nextDx = 0;  pacman.nextDy = 1;  break;
+        case 'ArrowLeft':  pacman.nextDx = -1; pacman.nextDy = 0;  break;
+        case 'ArrowRight': pacman.nextDx = 1;  pacman.nextDy = 0;  break;
+      }
     };
 
-    // Use container for keyboard events
     const container = containerRef.current;
-    if (container) {
-      container.addEventListener('keydown', handleKeyDown);
-    }
+    if (container) container.addEventListener('keydown', handleKeyDown);
 
-    const isSolid = (c, r) => {
-        if (r < 0 || r >= ACTIVE_ROWS) return true;
-        if (c < 0 || c >= COLS) return false; // Tunnel wrapping
-        const tile = mapLayout[r][c];
-        return tile === 1;
-    };
+    // ============================================
+    // MOVEMENT LOGIC - The Core Fix
+    // ============================================
+    
+    const moveCharacter = (char, isPacman = false) => {
+      const currentTile = pixelToTile(char.px, char.py);
+      const center = tileCenterPx(currentTile.x, currentTile.y);
+      
+      // Calculate distance to tile center
+      const distX = char.px - center.x;
+      const distY = char.py - center.y;
+      
+      // Are we at (or will overshoot) the tile center this frame?
+      const movingTowardsCenterX = (char.dx > 0 && distX < 0) || (char.dx < 0 && distX > 0);
+      const movingTowardsCenterY = (char.dy > 0 && distY < 0) || (char.dy < 0 && distY > 0);
+      const willCrossCenter = 
+        (movingTowardsCenterX && Math.abs(distX) <= char.speed) ||
+        (movingTowardsCenterY && Math.abs(distY) <= char.speed) ||
+        (distX === 0 && distY === 0);
 
-    const getGridPos = (pixelX, pixelY) => {
-        return {
-            x: Math.floor(pixelX / TILE_SIZE),
-            y: Math.floor(pixelY / TILE_SIZE)
-        };
-    };
+      if (willCrossCenter || (distX === 0 && distY === 0)) {
+        // SNAP to center first - this is critical
+        char.px = center.x;
+        char.py = center.y;
 
-    const getCenterOfTile = (gridX, gridY) => {
-        return {
-            x: gridX * TILE_SIZE + TILE_SIZE / 2,
-            y: gridY * TILE_SIZE + TILE_SIZE / 2
-        };
-    };
-
-    const canMove = (gridX, gridY, dirX, dirY) => {
-        return !isSolid(gridX + dirX, gridY + dirY);
-    };
-
-    const moveCharacter = (char) => {
-        const grid = getGridPos(char.x, char.y);
-        const center = getCenterOfTile(grid.x, grid.y);
-        
-        const distToCenter = Math.abs(char.x - center.x) + Math.abs(char.y - center.y);
-        const atCenter = distToCenter < (char.speed || SPEED);
-
-        if (char === pacman) {
-            if (atCenter) {
-                // Snap to center
-                char.x = center.x;
-                char.y = center.y;
-                
-                // Try new direction first
-                if (char.nextDir.x !== 0 || char.nextDir.y !== 0) {
-                    if (canMove(grid.x, grid.y, char.nextDir.x, char.nextDir.y)) {
-                        char.dir = { ...char.nextDir };
-                        char.nextDir = { x: 0, y: 0 };
-                    }
-                }
-                
-                // Check if current direction is blocked
-                if (!canMove(grid.x, grid.y, char.dir.x, char.dir.y)) {
-                    char.dir = { x: 0, y: 0 };
-                }
+        if (isPacman) {
+          // Try buffered direction first
+          if (char.nextDx !== 0 || char.nextDy !== 0) {
+            if (canMoveInDir(currentTile.x, currentTile.y, char.nextDx, char.nextDy)) {
+              char.dx = char.nextDx;
+              char.dy = char.nextDy;
+              char.nextDx = 0;
+              char.nextDy = 0;
             }
+          }
+          
+          // Check if current direction is blocked
+          if (!canMoveInDir(currentTile.x, currentTile.y, char.dx, char.dy)) {
+            char.dx = 0;
+            char.dy = 0;
+          }
         } else {
-            // Ghost AI
-            if (atCenter) {
-                char.x = center.x;
-                char.y = center.y;
-                
-                const reverseDir = { x: -char.dir.x, y: -char.dir.y };
-                const possibleDirs = [];
-                
-                [[0,-1], [0,1], [-1,0], [1,0]].forEach(([dx, dy]) => {
-                    if (dx === reverseDir.x && dy === reverseDir.y) return;
-                    if (canMove(grid.x, grid.y, dx, dy)) {
-                        possibleDirs.push({ x: dx, y: dy });
-                    }
-                });
-                
-                if (possibleDirs.length > 0) {
-                    const keep = possibleDirs.find(d => d.x === char.dir.x && d.y === char.dir.y);
-                    if (!keep || Math.random() < 0.3) {
-                        char.dir = possibleDirs[Math.floor(Math.random() * possibleDirs.length)];
-                    }
-                } else {
-                    // Dead end, reverse
-                    char.dir = reverseDir;
-                }
+          // Ghost AI: Choose direction at intersections
+          const reverse = { x: -char.dx, y: -char.dy };
+          const options = [];
+          
+          [[0, -1], [0, 1], [-1, 0], [1, 0]].forEach(([dx, dy]) => {
+            // Don't reverse unless no other option
+            if (dx === reverse.x && dy === reverse.y) return;
+            if (canMoveInDir(currentTile.x, currentTile.y, dx, dy)) {
+              options.push({ dx, dy });
             }
+          });
+
+          if (options.length > 0) {
+            // Prefer current direction, otherwise pick randomly
+            const keepGoing = options.find(o => o.dx === char.dx && o.dy === char.dy);
+            if (keepGoing && Math.random() > 0.25) {
+              // Continue straight
+            } else {
+              const choice = options[Math.floor(Math.random() * options.length)];
+              char.dx = choice.dx;
+              char.dy = choice.dy;
+            }
+          } else {
+            // Dead end - must reverse
+            char.dx = reverse.x;
+            char.dy = reverse.y;
+          }
         }
+      }
 
-        // Move
-        char.x += char.dir.x * (char.speed || SPEED);
-        char.y += char.dir.y * (char.speed || SPEED);
+      // MOVE - only if direction is set and path is clear
+      if (char.dx !== 0 || char.dy !== 0) {
+        const nextTile = pixelToTile(
+          char.px + char.dx * char.speed,
+          char.py + char.dy * char.speed
+        );
+        
+        // Double-check we're not entering a wall
+        if (!isWall(nextTile.x, nextTile.y)) {
+          char.px += char.dx * char.speed;
+          char.py += char.dy * char.speed;
+        } else {
+          // Hit a wall - snap to center and stop
+          snapToTileCenter(char);
+          if (isPacman) {
+            char.dx = 0;
+            char.dy = 0;
+          }
+        }
+      }
 
-        // Tunnel wrap
-        if (char.x < 0) char.x = canvas.width;
-        if (char.x > canvas.width) char.x = 0;
+      // Tunnel wrapping
+      if (char.px < 0) char.px = canvas.width - TILE_SIZE / 2;
+      if (char.px >= canvas.width) char.px = TILE_SIZE / 2;
     };
 
-
+    // ============================================
+    // GAME LOOP
+    // ============================================
     const update = () => {
-        moveCharacter(pacman);
-        
-        const pGrid = getGridPos(pacman.x, pacman.y);
-        
-        if (pGrid.y >= 0 && pGrid.y < ACTIVE_ROWS && pGrid.x >= 0 && pGrid.x < COLS) {
-            if (mapLayout[pGrid.y][pGrid.x] === 0 || mapLayout[pGrid.y][pGrid.x] === 2) {
-                mapLayout[pGrid.y][pGrid.x] = 3;
-            }
+      // Move characters
+      moveCharacter(pacman, true);
+      ghosts.forEach(g => moveCharacter(g, false));
+
+      // Eat dots
+      const pTile = pixelToTile(pacman.px, pacman.py);
+      if (pTile.y >= 0 && pTile.y < ROWS && pTile.x >= 0 && pTile.x < COLS) {
+        const tile = mapLayout[pTile.y][pTile.x];
+        if (tile === 0 || tile === 2) {
+          mapLayout[pTile.y][pTile.x] = 3;
         }
+      }
 
-        ghosts.forEach(moveCharacter);
+      // ========== RENDERING ==========
+      ctx.fillStyle = 'black';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        // Draw background
-        ctx.fillStyle = 'black';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
+      // Draw maze
+      for (let r = 0; r < ROWS; r++) {
+        for (let c = 0; c < COLS; c++) {
+          const tile = mapLayout[r][c];
+          const x = c * TILE_SIZE;
+          const y = r * TILE_SIZE;
 
-        // Draw map
-        for (let r = 0; r < ACTIVE_ROWS; r++) {
-            for (let c = 0; c < COLS; c++) {
-                const tile = mapLayout[r][c];
-                const x = c * TILE_SIZE;
-                const y = r * TILE_SIZE;
-
-                if (tile === 1) {
-                    ctx.fillStyle = '#1e3a8a';
-                    ctx.fillRect(x + 1, y + 1, TILE_SIZE - 2, TILE_SIZE - 2);
-                    ctx.strokeStyle = '#3b82f6';
-                    ctx.strokeRect(x + 2, y + 2, TILE_SIZE - 4, TILE_SIZE - 4);
-                } else if (tile === 0) {
-                    ctx.fillStyle = '#fca5a5';
-                    ctx.beginPath();
-                    ctx.arc(x + TILE_SIZE/2, y + TILE_SIZE/2, 2, 0, Math.PI * 2);
-                    ctx.fill();
-                } else if (tile === 2) {
-                    ctx.fillStyle = '#fca5a5';
-                    ctx.beginPath();
-                    ctx.arc(x + TILE_SIZE/2, y + TILE_SIZE/2, 4, 0, Math.PI * 2);
-                    ctx.fill();
-                }
-            }
+          if (tile === 1) {
+            ctx.fillStyle = '#1e3a8a';
+            ctx.fillRect(x + 1, y + 1, TILE_SIZE - 2, TILE_SIZE - 2);
+            ctx.strokeStyle = '#3b82f6';
+            ctx.lineWidth = 1;
+            ctx.strokeRect(x + 2, y + 2, TILE_SIZE - 4, TILE_SIZE - 4);
+          } else if (tile === 0) {
+            ctx.fillStyle = '#fca5a5';
+            ctx.beginPath();
+            ctx.arc(x + TILE_SIZE / 2, y + TILE_SIZE / 2, 2, 0, Math.PI * 2);
+            ctx.fill();
+          } else if (tile === 2) {
+            ctx.fillStyle = '#fca5a5';
+            ctx.beginPath();
+            ctx.arc(x + TILE_SIZE / 2, y + TILE_SIZE / 2, 4, 0, Math.PI * 2);
+            ctx.fill();
+          }
         }
+      }
 
-        // Draw Mr. Pac-Man (no bow, masculine)
-        ctx.save();
-        ctx.translate(pacman.x, pacman.y);
-        let angle = 0;
-        if (pacman.dir.x === 1) angle = 0;
-        if (pacman.dir.x === -1) angle = Math.PI;
-        if (pacman.dir.y === 1) angle = Math.PI / 2;
-        if (pacman.dir.y === -1) angle = -Math.PI / 2;
-        
-        ctx.rotate(angle);
-        
-        if (pacman.mouth >= 0.25) pacman.mouthOp = -1;
-        if (pacman.mouth <= 0.02) pacman.mouthOp = 1;
-        pacman.mouth += 0.03 * pacman.mouthOp;
+      // Draw Pac-Man
+      ctx.save();
+      ctx.translate(pacman.px, pacman.py);
+      
+      let angle = 0;
+      if (pacman.dx === 1) angle = 0;
+      else if (pacman.dx === -1) angle = Math.PI;
+      else if (pacman.dy === 1) angle = Math.PI / 2;
+      else if (pacman.dy === -1) angle = -Math.PI / 2;
+      ctx.rotate(angle);
 
-        ctx.fillStyle = 'yellow';
+      // Mouth animation
+      pacman.mouth += 0.04 * pacman.mouthDir;
+      if (pacman.mouth >= 0.3) pacman.mouthDir = -1;
+      if (pacman.mouth <= 0.05) pacman.mouthDir = 1;
+
+      ctx.fillStyle = 'yellow';
+      ctx.beginPath();
+      ctx.arc(0, 0, TILE_SIZE * 0.4, pacman.mouth * Math.PI, (2 - pacman.mouth) * Math.PI);
+      ctx.lineTo(0, 0);
+      ctx.fill();
+      ctx.restore();
+
+      // Draw Ghosts
+      ghosts.forEach(g => {
+        const size = TILE_SIZE * 0.4;
+        ctx.fillStyle = g.color;
         ctx.beginPath();
-        ctx.arc(0, 0, pacman.radius, pacman.mouth * Math.PI, (2 - pacman.mouth) * Math.PI);
-        ctx.lineTo(0, 0);
+        ctx.arc(g.px, g.py, size, Math.PI, 0);
+        ctx.lineTo(g.px + size, g.py + size * 0.8);
+        ctx.lineTo(g.px - size, g.py + size * 0.8);
+        ctx.closePath();
         ctx.fill();
 
-        ctx.restore();
+        // Eyes
+        ctx.fillStyle = 'white';
+        ctx.beginPath();
+        ctx.arc(g.px - 3, g.py - 1, 2.5, 0, Math.PI * 2);
+        ctx.arc(g.px + 3, g.py - 1, 2.5, 0, Math.PI * 2);
+        ctx.fill();
 
-        // Draw Ghosts
-        ghosts.forEach(g => {
-            ctx.fillStyle = g.color;
-            ctx.beginPath();
-            ctx.arc(g.x, g.y, TILE_SIZE * 0.4, Math.PI, 0);
-            ctx.lineTo(g.x + TILE_SIZE * 0.4, g.y + TILE_SIZE * 0.35);
-            ctx.lineTo(g.x - TILE_SIZE * 0.4, g.y + TILE_SIZE * 0.35);
-            ctx.fill();
-            
-            // Eyes
-            ctx.fillStyle = 'white';
-            ctx.beginPath();
-            ctx.arc(g.x - 3, g.y - 2, 3, 0, Math.PI * 2);
-            ctx.arc(g.x + 3, g.y - 2, 3, 0, Math.PI * 2);
-            ctx.fill();
-            
-            // Pupils
-            ctx.fillStyle = 'blue';
-            ctx.beginPath();
-            ctx.arc(g.x - 3 + g.dir.x * 1.5, g.y - 2 + g.dir.y * 1.5, 1.5, 0, Math.PI * 2);
-            ctx.arc(g.x + 3 + g.dir.x * 1.5, g.y - 2 + g.dir.y * 1.5, 1.5, 0, Math.PI * 2);
-            ctx.fill();
-        });
+        // Pupils (look in movement direction)
+        ctx.fillStyle = '#1e3a8a';
+        ctx.beginPath();
+        ctx.arc(g.px - 3 + g.dx * 1.2, g.py - 1 + g.dy * 1.2, 1.2, 0, Math.PI * 2);
+        ctx.arc(g.px + 3 + g.dx * 1.2, g.py - 1 + g.dy * 1.2, 1.2, 0, Math.PI * 2);
+        ctx.fill();
+      });
 
-        animationFrameId = requestAnimationFrame(update);
+      animationFrameId = requestAnimationFrame(update);
     };
 
     update();
 
     return () => {
-        if (container) {
-          container.removeEventListener('keydown', handleKeyDown);
-        }
-        cancelAnimationFrame(animationFrameId);
+      if (container) container.removeEventListener('keydown', handleKeyDown);
+      cancelAnimationFrame(animationFrameId);
     };
   }, [gameStarted]);
 
-  // Ghost component for intro screen
+  // Ghost preview component for intro
   const GhostPreview = ({ color, name }) => (
     <div className="text-center">
       <svg width="40" height="44" viewBox="0 0 40 44" className="mx-auto mb-2">
-        {/* Body */}
-        <path d={`M5 22 Q5 5, 20 5 Q35 5, 35 22 L35 40 L30 35 L25 40 L20 35 L15 40 L10 35 L5 40 Z`} fill={color} />
-        {/* Eyes */}
+        <path d="M5 22 Q5 5, 20 5 Q35 5, 35 22 L35 40 L30 35 L25 40 L20 35 L15 40 L10 35 L5 40 Z" fill={color} />
         <circle cx="14" cy="18" r="5" fill="white" />
         <circle cx="26" cy="18" r="5" fill="white" />
-        {/* Pupils */}
-        <circle cx="15" cy="19" r="2.5" fill="blue" />
-        <circle cx="27" cy="19" r="2.5" fill="blue" />
-        {/* Mouth (subtle line) */}
-        <path d="M12 28 Q20 32, 28 28" stroke="rgba(0,0,0,0.3)" strokeWidth="1.5" fill="none" />
+        <circle cx="15" cy="19" r="2.5" fill="#1e3a8a" />
+        <circle cx="27" cy="19" r="2.5" fill="#1e3a8a" />
       </svg>
       <span className="text-sm" style={{ color }}>{name}</span>
     </div>
@@ -376,36 +424,28 @@ const PacManGame = () => {
     return (
       <div className="flex flex-col items-center justify-center mb-6 w-full">
         <div className="relative rounded-xl overflow-hidden shadow-2xl border-4 border-slate-700 bg-black p-8"
-             style={{ width: '840px', height: '520px' }}>
-          
-          {/* Title */}
+             style={{ width: '600px', height: '480px' }}>
           <div className="text-center mb-8">
-            <h1 className="text-5xl font-bold text-yellow-400 mb-2"
+            <h1 className="text-4xl font-bold text-yellow-400 mb-2"
                 style={{ fontFamily: 'monospace', textShadow: '3px 3px 0 #0369a1' }}>
               DR. JIRA PAC-MAN
             </h1>
             <p className="text-blue-400 text-lg">© DR. JIRA DICTATE</p>
           </div>
 
-          {/* Character Preview */}
-          <div className="flex justify-center items-center space-x-10 mb-10">
-            {/* Mr. Pac-Man */}
+          <div className="flex justify-center items-center space-x-8 mb-10">
             <div className="text-center">
-              <div className="w-14 h-14 bg-yellow-400 rounded-full mx-auto mb-2 relative overflow-hidden">
-                {/* Mouth cutout */}
-                <div className="absolute right-0 top-1/2 -translate-y-1/2 w-0 h-0 border-t-[14px] border-b-[14px] border-l-[20px] border-t-transparent border-b-transparent border-l-black"></div>
+              <div className="w-12 h-12 bg-yellow-400 rounded-full mx-auto mb-2 relative overflow-hidden">
+                <div className="absolute right-0 top-1/2 -translate-y-1/2 w-0 h-0 border-t-[12px] border-b-[12px] border-l-[16px] border-t-transparent border-b-transparent border-l-black"></div>
               </div>
               <span className="text-yellow-400 text-sm font-bold">DR. JIRA</span>
             </div>
-            
-            {/* Ghosts with faces */}
             <GhostPreview color="#ef4444" name="NADIA" />
             <GhostPreview color="#f472b6" name="MARWA" />
             <GhostPreview color="#22d3d3" name="AMARA" />
             <GhostPreview color="#fb923c" name="REYHAN" />
           </div>
 
-          {/* Start Button */}
           <div className="text-center">
             <button
               onClick={handleStartGame}
@@ -415,22 +455,16 @@ const PacManGame = () => {
             </button>
           </div>
 
-          {/* Music Toggle */}
           <div className="absolute bottom-4 right-4">
             <button
               onClick={() => setMusicEnabled(!musicEnabled)}
               className={`p-2 rounded-full transition-colors ${musicEnabled ? 'bg-green-600 hover:bg-green-500' : 'bg-slate-600 hover:bg-slate-500'}`}
               title={musicEnabled ? 'Music On' : 'Music Off'}
             >
-              {musicEnabled ? (
-                <Volume2 className="w-5 h-5 text-white" />
-              ) : (
-                <VolumeX className="w-5 h-5 text-white" />
-              )}
+              {musicEnabled ? <Volume2 className="w-5 h-5 text-white" /> : <VolumeX className="w-5 h-5 text-white" />}
             </button>
           </div>
 
-          {/* Instructions */}
           <div className="absolute bottom-4 left-4 text-slate-500 text-xs">
             Use Arrow Keys to Move
           </div>
@@ -441,21 +475,14 @@ const PacManGame = () => {
 
   // Game Screen
   return (
-    <div 
-      ref={containerRef}
-      tabIndex={0}
-      className="flex flex-col items-center justify-center mb-6 w-full outline-none"
-    >
+    <div ref={containerRef} tabIndex={0} className="flex flex-col items-center justify-center mb-6 w-full outline-none">
       <div className="relative rounded-xl overflow-hidden shadow-2xl border-4 border-slate-700 bg-black">
-        <canvas 
-            ref={canvasRef} 
-            className="block"
-        />
+        <canvas ref={canvasRef} className="block" />
         <div className="absolute top-2 left-2 text-white/50 font-bold text-xs pointer-events-none">1UP 00</div>
         <div className="absolute top-2 right-2 text-white/50 font-bold text-xs pointer-events-none">HIGH SCORE</div>
       </div>
       <div className="text-slate-400 text-xs mt-2 font-mono">
-        Arrow Keys to Move (click game area first)
+        Click here, then use Arrow Keys
       </div>
     </div>
   );
