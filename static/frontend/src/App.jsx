@@ -139,6 +139,20 @@ function App() {
           setProcessingStatus('reviewing');
           return;
       }
+      
+      // Handle Object Response with "confirm" status and "preview" data
+      // This maps the single preview object into an array for the IssueReview component
+      if (data && data.status === 'confirm' && data.preview) {
+          const suggestion = {
+              summary: data.preview.summary,
+              issue_type: data.preview.issue_type,
+              description: data.preview.description,
+              priority: data.preview.priority
+          };
+          setSuggestions([suggestion]);
+          setProcessingStatus('reviewing');
+          return;
+      }
 
       // Handle Legacy/Single Object Response
       if (data && data.status === 'ignored') {
