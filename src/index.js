@@ -128,6 +128,7 @@ resolver.define('sendAudioToN8n', async (req) => {
   }
 
   const text = await response.text();
+  console.log("N8n Response:", text); // Log the response for debugging in recent tunnel
   try {
     const data = JSON.parse(text);
     return data;
