@@ -569,7 +569,7 @@ const PacManGame = () => {
                 style={{ fontFamily: 'monospace', textShadow: '3px 3px 0 #0369a1' }}>
               DR. JIRA PAC-MAN
             </h1>
-            <p className="text-blue-400 text-lg">© DR. JIRA DICTATE</p>
+           
           </div>
 
           <div className="flex justify-center items-center space-x-8 mb-10">
@@ -592,6 +592,11 @@ const PacManGame = () => {
             >
               🎮 START GAME
             </button>
+          </div>
+          
+
+          <div className="absolute bottom-4 left-0 right-0 text-center pointer-events-none">
+            <p className="text-blue-400 text-lg">© DR. JIRA DICTATE 1986</p>
           </div>
 
           <div className="absolute bottom-4 right-4">
