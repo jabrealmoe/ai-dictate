@@ -66,7 +66,7 @@ resolver.define('createJiraIssue', async (req) => {
       bodyData.fields.priority = { name: priority };
   }
 
-  const response = await api.asUser().requestJira(route`/rest/api/3/issue`, {
+  const response = await api.asApp().requestJira(route`/rest/api/3/issue`, {
     method: 'POST',
     headers: {
       'Accept': 'application/json',
