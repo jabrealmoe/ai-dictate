@@ -8,7 +8,9 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@forge/api": "^6.4.3",
     "@forge/bridge": "^3.0.0",
+    "@forge/resolver": "^1.7.1",
     "@react-three/drei": "^9.122.0",
     "@react-three/fiber": "^8.17.10",
     "clsx": "^2.0.0",

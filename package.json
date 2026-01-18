@@ -17,8 +17,8 @@
     "test:smoke": "echo 'Smoke tests passed (placeholder)' && exit 0"
   },
   "dependencies": {
-    "@forge/api": "^4.0.0",
-    "@forge/resolver": "^1.5.0"
+    "@forge/api": "^6.4.3",
+    "@forge/resolver": "^1.7.1"
   },
   "devDependencies": {
     "@forge/cli": "^10.0.0",
