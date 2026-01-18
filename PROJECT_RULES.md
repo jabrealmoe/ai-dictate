@@ -35,3 +35,49 @@ This document serves as a source of truth for AI agents and developers working o
 
 - **Tunneling**: Use `forge tunnel` to debug backend resolvers locally. Note that frontend changes usually require a deployment to be visible, but backend logs appear in the tunnel immediately.
 - **Linting**: Run `forge lint` before major commits to catch manifest or permission issues.
+
+## 📝 Conventional Commits
+
+All commit messages MUST follow the [Conventional Commits](https://www.conventionalcommits.org/) specification:
+
+```
+<type>(<scope>): <description>
+
+[optional body]
+
+[optional footer(s)]
+```
+
+### Types
+
+| Type       | Description                                       |
+| ---------- | ------------------------------------------------- |
+| `feat`     | A new feature                                     |
+| `fix`      | A bug fix                                         |
+| `docs`     | Documentation changes                             |
+| `style`    | Code style changes (formatting, semicolons, etc.) |
+| `refactor` | Code refactoring (no feature or fix)              |
+| `perf`     | Performance improvements                          |
+| `test`     | Adding or updating tests                          |
+| `build`    | Build system or external dependencies             |
+| `ci`       | CI/CD configuration changes                       |
+| `chore`    | Maintenance tasks, tooling, etc.                  |
+| `revert`   | Reverting a previous commit                       |
+
+### Examples
+
+```
+feat: add intro screen with music to PacMan game
+fix: resolve wall clipping in grid-based movement
+docs: update PROJECT_RULES with conventional commits
+chore: update dependencies to latest versions
+refactor(game): separate discrete logic from rendering
+```
+
+### Rules
+
+1. Use **lowercase** for the type and description
+2. Do NOT end the description with a period
+3. Keep the first line under 72 characters
+4. Use the imperative mood ("add feature" not "added feature")
+5. Reference issue numbers in the footer when applicable: `Closes #123`
