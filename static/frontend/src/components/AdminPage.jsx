@@ -5,10 +5,10 @@ import { Settings, Save, Loader2, Cpu } from 'lucide-react';
 
 const AdminPage = () => {
   const [settings, setSettings] = useState({
-    topK: 50,
+    topK: -1,
     topP: 0.9,
     temperature: 0.7,
-    maxTokens: 150
+    maxTokens: 2048
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
