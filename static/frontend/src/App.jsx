@@ -16,6 +16,7 @@ function App() {
 
   useEffect(() => {
     view.getContext().then(setContext);
+    view.theme.enable();
   }, []);
 
   if (!context) {
