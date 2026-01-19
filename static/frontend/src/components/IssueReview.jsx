@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { invoke } from '@forge/bridge';
+import { token } from '@atlaskit/tokens';
 import { AlertCircle, CheckCircle2, Loader2, X, Plus } from 'lucide-react';
 
 const IssueReview = ({ suggestions, onCancel, onIssueCreated, context }) => {
@@ -37,10 +38,17 @@ const IssueReview = ({ suggestions, onCancel, onIssueCreated, context }) => {
   };
 
   return (
-    <div className="w-full max-w-md mx-auto p-4 bg-white rounded-lg shadow-sm border border-slate-200">
+    <div 
+        className="w-full max-w-md mx-auto p-4 rounded-lg shadow-sm border"
+        style={{
+            backgroundColor: token('elevation.surface'),
+            borderColor: token('color.border'),
+            color: token('color.text')
+        }}
+    >
       <div className="flex justify-between items-center mb-4">
-        <h3 className="font-semibold text-slate-800">Review AI Suggestion</h3>
-        <button onClick={onCancel} className="text-slate-400 hover:text-slate-600">
+        <h3 className="font-semibold" style={{ color: token('color.text') }}>Review AI Suggestion</h3>
+        <button onClick={onCancel} style={{ color: token('color.text.subtlest') }} className="hover:opacity-80">
           <X className="w-5 h-5" />
         </button>
       </div>
@@ -54,28 +62,35 @@ const IssueReview = ({ suggestions, onCancel, onIssueCreated, context }) => {
 
       <div className="space-y-4">
         {suggestions.map((suggestion, index) => (
-          <div key={index} className="p-4 bg-slate-50 rounded-md border border-slate-100 space-y-2">
+          <div 
+            key={index} 
+            className="p-4 rounded-md border space-y-2"
+            style={{
+                backgroundColor: token('elevation.surface.sunken'),
+                borderColor: token('color.border')
+            }}
+          >
             <div>
-               <label className="text-xs font-medium text-slate-500 uppercase">Summary</label>
-               <p className="font-medium text-slate-800">{suggestion.summary}</p>
+               <label className="text-xs font-medium uppercase" style={{ color: token('color.text.subtlest') }}>Summary</label>
+               <p className="font-medium" style={{ color: token('color.text') }}>{suggestion.summary}</p>
             </div>
             
             {suggestion.description && (
                 <div>
-                    <label className="text-xs font-medium text-slate-500 uppercase">Description</label>
-                    <p className="text-sm text-slate-600 whitespace-pre-wrap">{suggestion.description}</p>
+                    <label className="text-xs font-medium uppercase" style={{ color: token('color.text.subtlest') }}>Description</label>
+                    <p className="text-sm whitespace-pre-wrap" style={{ color: token('color.text') }}>{suggestion.description}</p>
                 </div>
             )}
 
             <div className="flex gap-4">
                 <div>
-                   <label className="text-xs font-medium text-slate-500 uppercase">Type</label>
-                   <p className="text-sm text-slate-700">{suggestion.issue_type || 'Task'}</p>
+                   <label className="text-xs font-medium uppercase" style={{ color: token('color.text.subtlest') }}>Type</label>
+                   <p className="text-sm" style={{ color: token('color.text') }}>{suggestion.issue_type || 'Task'}</p>
                 </div>
                 {suggestion.priority && (
                     <div>
-                       <label className="text-xs font-medium text-slate-500 uppercase">Priority</label>
-                       <p className="text-sm text-slate-700">{suggestion.priority}</p>
+                       <label className="text-xs font-medium uppercase" style={{ color: token('color.text.subtlest') }}>Priority</label>
+                       <p className="text-sm" style={{ color: token('color.text') }}>{suggestion.priority}</p>
                     </div>
                 )}
             </div>
