@@ -8,6 +8,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@atlaskit/css-reset": "^7.3.11",
+    "@atlaskit/tokens": "^10.0.1",
     "@forge/api": "^6.4.3",
     "@forge/bridge": "^3.0.0",
     "@forge/resolver": "^1.7.1",

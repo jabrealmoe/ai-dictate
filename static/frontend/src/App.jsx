@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { request, invoke, view } from '@forge/bridge';
+import { token } from '@atlaskit/tokens';
 import { Mic, Square, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
 import AdminPage from './components/AdminPage';
 import IssueReview from './components/IssueReview';
@@ -27,9 +28,6 @@ function App() {
   }
 
   const playChime = (type = 'start') => {
-      // Audio feedback code logic - truncated for brevity if not changed, but must include if inside replace range
-      // ... actually, I must include function body if I replace the whole thing or careful range.
-      // Let's assume playChime is unchanged.
       try {
       const AudioContext = window.AudioContext || window.webkitAudioContext;
       if (!AudioContext) return;
@@ -215,7 +213,13 @@ function App() {
   }
 
   return (
-    <div className="p-4 flex flex-col items-center justify-center space-y-4 font-sans text-slate-800">
+    <div 
+      className="p-4 flex flex-col items-center justify-center space-y-4 font-sans"
+      style={{
+        backgroundColor: token('elevation.surface'),
+        color: token('color.text')
+      }}
+    >
       
       <div className="relative">
         <button
@@ -244,21 +248,21 @@ function App() {
         )}
         
         {processingStatus === 'success' && (
-           <div className="flex items-center space-x-2 text-green-600">
+          <div className="flex items-center space-x-2 text-green-600">
             <CheckCircle2 className="w-5 h-5" />
             <span>{message}</span>
-           </div>
+          </div>
         )}
 
         {processingStatus === 'error' && (
-           <div className="flex items-center space-x-2 text-red-600">
+          <div className="flex items-center space-x-2 text-red-600">
             <AlertCircle className="w-5 h-5" />
             <span>{message}</span>
-           </div>
+          </div>
         )}
 
         {(processingStatus === 'idle' || processingStatus === 'recording') && (
-          <p className="text-slate-500 text-sm">{message || 'Click mic to record (max 15s)'}</p>
+          <p className="text-sm" style={{ color: token('color.text.subtlest') }}>{message || 'Click mic to record (max 15s)'}</p>
         )}
       </div>
     </div>
